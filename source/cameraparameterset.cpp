@@ -78,6 +78,19 @@ QList<CameraParameterSet> CameraParameterListModel::parseParameterFile(QString f
             qWarning() << camName << " not conforming to standard format.";
         }
 
+
+//        // does the same as previous code, just way more readable. replaces translation part of c2w to get w2c (camera2world, vice versa)
+//        Mat exMat_src_tmp = cvarrToMat(exMat_src);
+//        Mat exMat_dst_tmp = cvarrToMat(exMat_dst);
+//        exMat_src_tmp.copyTo(exMat_dst_tmp);  // copy matrix, since rotation part will stay the same
+
+//        Mat R = exMat_src_tmp(Range(0, 3), Range(0, 3));  // extract rotation matrix
+//        Mat t = exMat_src_tmp(Range(0, 3), Range(3, 4));  // extract translation vector
+
+//        exMat_dst_tmp(Range(0, 3), Range(3, 4)) = -R*t; // overwrite translation part
+
+        vect = -matR*vect;
+
         cameraParameters.append(CameraParameterSet(camName,matK,matR,vect));
     }
     while(!paramInStream.atEnd());
@@ -131,4 +144,19 @@ QVariant CameraParameterListModel::data(const QModelIndex &index, int role) cons
 QString CameraParameterSet::getCamName() const
 {
     return camName;
+}
+
+glm::mat3x3 CameraParameterSet::getK() const
+{
+    return K;
+}
+
+glm::mat3x3 CameraParameterSet::getR() const
+{
+    return R;
+}
+
+glm::vec3 CameraParameterSet::getT() const
+{
+    return t;
 }

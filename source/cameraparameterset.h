@@ -21,6 +21,9 @@ public:
 ////    QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
 
     QString getCamName() const;
+    glm::mat3x3 getK() const;
+    glm::mat3x3 getR() const;
+    glm::vec3 getT() const;
 
 private:
     QString camName;

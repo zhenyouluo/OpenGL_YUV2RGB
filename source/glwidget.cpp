@@ -62,7 +62,9 @@ GLWidget::GLWidget(QWidget *parent)
       m_yRot(0),
       m_zRot(0),
       m_program(0),
-      m_texture_data(0)
+      m_texture_data(0),
+      m_frameHeight(1),
+      m_frameWidth(1)
 {
     m_core = QCoreApplication::arguments().contains(QStringLiteral("--coreprofile"));
     // --transparent causes the clear color to be transparent. Therefore, on systems that
@@ -70,6 +72,13 @@ GLWidget::GLWidget(QWidget *parent)
     m_transparent = QCoreApplication::arguments().contains(QStringLiteral("--transparent"));
     if (m_transparent)
         setAttribute(Qt::WA_TranslucentBackground);
+
+    QSizePolicy p(sizePolicy());
+//    p.setHorizontalPolicy(QSizePolicy::Fixed);
+//    p.setVerticalPolicy(QSizePolicy::Fixed);
+    p.setHeightForWidth(true);
+    setSizePolicy(p);
+
 }
 
 GLWidget::~GLWidget()
@@ -85,6 +94,19 @@ QSize GLWidget::minimumSizeHint() const
 QSize GLWidget::sizeHint() const
 {
     return QSize(400, 400);
+}
+
+int GLWidget::heightForWidth(int w) const
+{
+    qDebug() << "width " << w;
+//    QSize test(w,w);
+//    QOpenGLWidget::setFixedSize(w,w);    
+    if(m_frameWidth == 0) return w;
+
+    double h = static_cast<double> (m_frameHeight) / m_frameWidth * w;
+//    double test2 = m_frameHeight / m_frameWidth * w;
+    return h;
+
 }
 
 static void qNormalizeAngle(int &angle)
@@ -103,6 +125,8 @@ void GLWidget::setXRotation(int angle)
         emit xRotationChanged(angle);
         update();
     }
+//    QOpenGLWidget::setFixedSize(200,200);
+//    setGeometry();
 }
 
 void GLWidget::setYRotation(int angle)
@@ -148,13 +172,36 @@ void GLWidget::cameraSelectionChanged(QItemSelection newCamera)
     qDebug() << "tst" << newCamera.first();
 ///    ... how to acces it/ cast it/ whatever ...
 ///
-    CameraParameterSet test = newCamera.indexes().first().data(Qt::UserRole).value<CameraParameterSet>();
+    CameraParameterSet camParams = newCamera.indexes().first().data(Qt::UserRole).value<CameraParameterSet>();
 
-//        QModelIndexList indexes = selection.indexes();
-//        foreach(const QModelIndex &index, indexes) {
-//            QListWidgetItem *item = LoadedFilesListWidget->item(index.row());
-//            // ...
-//        }
+    m_K_view = camParams.getK();
+    m_R_view = camParams.getR();
+    m_t_view = camParams.getT();
+
+    // change matrices according to openGL style (negating third columns of K and R)
+//    m_K_view[2] = -1.f * m_K_view[2];
+//    m_R_view[2] = -1.f * m_R_view[2];
+//    std::cout << "det of R: " << glm::determinant(m_R_view) << std::endl;
+
+//    // change matrices according to openGL style (negating third columns of K and R)
+//    glm::mat3 changeSigns(1.f);
+//    // negate 2nd colum of K and 2nd row of R
+//    changeSigns[1][1] = -1.f;
+//    m_R_view = changeSigns * m_R_view ;
+//    m_K_view = m_K_view * changeSigns;
+//    // negate third colum of R and K
+//    changeSigns[1][1] = 1.f;
+//    changeSigns[2][2] = -1.f;
+//    m_R_view = m_R_view * changeSigns;
+//    m_K_view = m_K_view * changeSigns;
+
+
+    //recompute opengl matrices
+    setupMatrices();
+
+    // draw from new perspective
+//    paintGL();
+    update();
 
 }
 
@@ -213,32 +260,72 @@ void GLWidget::initializeGL()
     QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
 
 
+//    // compute frame vertices and copy to buffer
+//    computeFrameVertices(m_frameWidth, m_frameHeight);
+//    std::cout << "nr of pixels:" << m_frameWidth * m_frameHeight << std::endl;
+//    std::cout << "nr of vertices:" << m_videoFrameTriangles_vertices.size() << std::endl;
+//    m_vertices_Vbo.create();
+//    m_vertices_Vbo.bind();
+//    m_vertices_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
+//    m_vertices_Vbo.allocate(&m_videoFrameTriangles_vertices[0], m_videoFrameTriangles_vertices.size()* sizeof(glm::vec3));
+
+//    // compute indices of vertices and copy to buffer
+//    computeFrameMesh(m_frameWidth, m_frameHeight);
+//    std::cout << "nr of triangles:" << m_videoFrameTriangles_indices.size() / 3 << std::endl;
+//    m_vertice_indices_Vbo.create();
+
+////    m_vertices_Vbo.
+//    m_vertice_indices_Vbo.bind();
+//    m_vertice_indices_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
+//    m_vertice_indices_Vbo.allocate(&m_videoFrameTriangles_indices[0], m_videoFrameTriangles_indices.size() * sizeof(unsigned int));
+
+//    // compute texture coordinates and copy to buffer
+//    computeTextureCoordinates(m_frameWidth, m_frameHeight);
+//    std::cout << "nr of uv coordinates produced:" << m_videoFrameTriangles_texture_uv.size() / 2 << std::endl;
+//    m_texture_coordinates_Vbo.create();
+//    m_texture_coordinates_Vbo.bind();
+//    m_texture_coordinates_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
+//    m_texture_coordinates_Vbo.allocate(&m_videoFrameTriangles_texture_uv[0], m_videoFrameTriangles_texture_uv.size() * sizeof(float));
+
+
+    // very simple model for debugging: just put video on two triangles forming a rectangle
     // compute frame vertices and copy to buffer
-    computeFrameVertices(m_frameWidth, m_frameHeight);
-    std::cout << "nr of pixels:" << m_frameWidth * m_frameHeight << std::endl;
-    std::cout << "nr of vertices:" << m_videoFrameTriangles_vertices.size() << std::endl;
+    m_videoFrameTriangles_vertices.clear();
+    m_videoFrameTriangles_vertices.push_back(glm::vec3(0,0,0));
+    m_videoFrameTriangles_vertices.push_back(glm::vec3(m_frameWidth,0,0));
+    m_videoFrameTriangles_vertices.push_back(glm::vec3(0,m_frameHeight,0));
+    m_videoFrameTriangles_vertices.push_back(glm::vec3(m_frameWidth,m_frameHeight,0));
+    m_videoFrameTriangles_indices.push_back(0);
+    m_videoFrameTriangles_indices.push_back(2);
+    m_videoFrameTriangles_indices.push_back(1);
+    m_videoFrameTriangles_indices.push_back(1);
+    m_videoFrameTriangles_indices.push_back(2);
+    m_videoFrameTriangles_indices.push_back(3);
+    m_videoFrameTriangles_texture_uv.clear();
+    m_videoFrameTriangles_texture_uv.push_back(0.f);
+    m_videoFrameTriangles_texture_uv.push_back(0.f);
+    m_videoFrameTriangles_texture_uv.push_back(1.f);
+    m_videoFrameTriangles_texture_uv.push_back(0.f);
+    m_videoFrameTriangles_texture_uv.push_back(0.f);
+    m_videoFrameTriangles_texture_uv.push_back(1.f);
+    m_videoFrameTriangles_texture_uv.push_back(1.f);
+    m_videoFrameTriangles_texture_uv.push_back(1.f);
     m_vertices_Vbo.create();
     m_vertices_Vbo.bind();
     m_vertices_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
     m_vertices_Vbo.allocate(&m_videoFrameTriangles_vertices[0], m_videoFrameTriangles_vertices.size()* sizeof(glm::vec3));
-
     // compute indices of vertices and copy to buffer
-    computeFrameMesh(m_frameWidth, m_frameHeight);
     std::cout << "nr of triangles:" << m_videoFrameTriangles_indices.size() / 3 << std::endl;
     m_vertice_indices_Vbo.create();
-
-//    m_vertices_Vbo.
     m_vertice_indices_Vbo.bind();
     m_vertice_indices_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
     m_vertice_indices_Vbo.allocate(&m_videoFrameTriangles_indices[0], m_videoFrameTriangles_indices.size() * sizeof(unsigned int));
-
-    // compute texture coordinates and copy to buffer
-    computeTextureCoordinates(m_frameWidth, m_frameHeight);
-    std::cout << "nr of uv coordinates produced:" << m_videoFrameTriangles_texture_uv.size() / 2 << std::endl;
     m_texture_coordinates_Vbo.create();
     m_texture_coordinates_Vbo.bind();
     m_texture_coordinates_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
     m_texture_coordinates_Vbo.allocate(&m_videoFrameTriangles_texture_uv[0], m_videoFrameTriangles_texture_uv.size() * sizeof(float));
+
+
 
     loadVideoData();
 
@@ -255,10 +342,6 @@ void GLWidget::initializeGL()
 
     // Store the vertex attribute bindings for the program.
     setupVertexAttribs();
-
-    // Our camera never changes in this example.
-    m_camera.setToIdentity();
-    m_camera.translate(0, 0, -1);
 
     // Light position is fixed.
     m_program->setUniformValue(m_lightPosLoc, QVector3D(0, 0, 70));
@@ -331,35 +414,35 @@ void GLWidget::setupVertexAttribs()
 
 void GLWidget::setupMatrices()
 {
-    glm::mat3x4 P2t(0.8948549867753071,   -0.05046163984489068, 411.5970167968247, -9060.076341977459,
-                 0.01206148241001237,   0.9999514240487639, -43.61722592969886, -186.4324231963577,
-                -9.195396620947882e-05, 6.830175425923271e-06, 1.070481143014745, 0.5386813524799995);
+//    glm::mat3x4 P2t(0.8948549867753071,   -0.05046163984489068, 411.5970167968247, -9060.076341977459,
+//                 0.01206148241001237,   0.9999514240487639, -43.61722592969886, -186.4324231963577,
+//                -9.195396620947882e-05, 6.830175425923271e-06, 1.070481143014745, 0.5386813524799995);
 
-    m_P2 = glm::transpose(P2t);
-    std::cout << "P2: " << glm::to_string(m_P2) << std::endl;
+//    m_P2 = glm::transpose(P2t);
+//    std::cout << "P2: " << glm::to_string(m_P2) << std::endl;
 
-    m_mat3ProjectXY_from_ref_to_virt[0] = glm::vec3(m_P2[0]);
-    m_mat3ProjectXY_from_ref_to_virt[1] = glm::vec3(m_P2[1]);
-    m_mat3ProjectXY_from_ref_to_virt[2] = glm::vec3(m_P2[2]);
-    std::cout << "mat3ProjectXY_from_ref_to_virt: " << glm::to_string(m_mat3ProjectXY_from_ref_to_virt) << std::endl;
+//    m_mat3ProjectXY_from_ref_to_virt[0] = glm::vec3(m_P2[0]);
+//    m_mat3ProjectXY_from_ref_to_virt[1] = glm::vec3(m_P2[1]);
+//    m_mat3ProjectXY_from_ref_to_virt[2] = glm::vec3(m_P2[2]);
+//    std::cout << "mat3ProjectXY_from_ref_to_virt: " << glm::to_string(m_mat3ProjectXY_from_ref_to_virt) << std::endl;
 
-    m_vec3ProjectZ_from_ref_to_virt = m_P2[3];
-    std::cout << "vec3ProjectZ_from_ref_to_virt: " << glm::to_string(m_vec3ProjectZ_from_ref_to_virt) << std::endl;
+//    m_vec3ProjectZ_from_ref_to_virt = m_P2[3];
+//    std::cout << "vec3ProjectZ_from_ref_to_virt: " << glm::to_string(m_vec3ProjectZ_from_ref_to_virt) << std::endl;
 
-    glm::mat4x4 P3t( 0.000569053341143,  -0.000033009518064,  -0.360748429344014,  -5.541990934259999,
-                    0.000033645245483,   0.000576968745365,  -0.335637862771796,  -0.264130025039997,
-                    -0.000091953966209,   0.000006830175426,   1.070481143014745,   0.538681352479999,
-                    0,  -0.000000000000000,   0.000000000000000,   1.000000000000000);
-    m_P3 = glm::transpose(P3t);
-    std::cout << "P3: " << glm::to_string(m_P3) << std::endl;
+//    glm::mat4x4 P3t( 0.000569053341143,  -0.000033009518064,  -0.360748429344014,  -5.541990934259999,
+//                    0.000033645245483,   0.000576968745365,  -0.335637862771796,  -0.264130025039997,
+//                    -0.000091953966209,   0.000006830175426,   1.070481143014745,   0.538681352479999,
+//                    0,  -0.000000000000000,   0.000000000000000,   1.000000000000000);
+//    m_P3 = glm::transpose(P3t);
+//    std::cout << "P3: " << glm::to_string(m_P3) << std::endl;
 
-    m_mat3x4ProjectXY_from_ref_to_virt_world[0] = glm::vec4(m_P3[0]);
-    m_mat3x4ProjectXY_from_ref_to_virt_world[1] = glm::vec4(m_P3[1]);
-    m_mat3x4ProjectXY_from_ref_to_virt_world[2] = glm::vec4(m_P3[2]);
-    std::cout << "mat3x4ProjectXY_from_ref_to_virt_world: " << glm::to_string(m_mat3x4ProjectXY_from_ref_to_virt_world) << std::endl;
+//    m_mat3x4ProjectXY_from_ref_to_virt_world[0] = glm::vec4(m_P3[0]);
+//    m_mat3x4ProjectXY_from_ref_to_virt_world[1] = glm::vec4(m_P3[1]);
+//    m_mat3x4ProjectXY_from_ref_to_virt_world[2] = glm::vec4(m_P3[2]);
+//    std::cout << "mat3x4ProjectXY_from_ref_to_virt_world: " << glm::to_string(m_mat3x4ProjectXY_from_ref_to_virt_world) << std::endl;
 
-    m_vec4ProjectZ_from_ref_to_virt_world = glm::vec4(m_P3[3]) ;
-    std::cout << "vec4ProjectZ_from_ref_to_virt_world: " << glm::to_string(m_vec4ProjectZ_from_ref_to_virt_world) << std::endl;
+//    m_vec4ProjectZ_from_ref_to_virt_world = glm::vec4(m_P3[3]) ;
+//    std::cout << "vec4ProjectZ_from_ref_to_virt_world: " << glm::to_string(m_vec4ProjectZ_from_ref_to_virt_world) << std::endl;
 
 //    vec3 vertexPosition_modelspace;
 //    vec4 virt_position_world = vec4(matProjectXY_from_ref_to_virt_world * vec3(vertexPosition_modelspace[0],vertexPosition_modelspace[1],1));
@@ -373,21 +456,83 @@ void GLWidget::setupMatrices()
 //      0, 1727.183523297295, 500.7943988015505;
 //      0, 0, 1]
 
-    glm::mat3 K2t(  1728.807356436687,  0,                  967.099291776573,
-                    0,                  1727.183523297295,  500.7943988015505,
-                    0,                  0,                  1);
-    m_K2     = glm::transpose(K2t);
-    std::cout << "K2: " << glm::to_string(m_K2) << std::endl;
-    std::cout << "det K2: " << glm::determinant(m_K2) << std::endl;
-    m_K2_inv = glm::inverse(m_K2);
-    std::cout << "K2_inv: " << glm::to_string(m_K2_inv) << std::endl;
 
-    float n = 0.0001f;
-    float f = 100000.f;
 
-    m_Projection = getProjectionFromCamCalibration(m_K2,f,n);
 
-    std::cout << "Projection: " << glm::to_string(m_Projection) << std::endl;
+// // parameters of view 0 hardcoded
+//    // calibration matrix
+//    glm::mat3 K_Cref_t( 1731.8537611304296f, 0.f,                   944.82280521513485f,
+//                        0.f,                 1730.2451743420156f,   522.20735217757431f,
+//                        0.f,                 0.f,                   1.f);
+//    // rotation matrix
+//    glm::mat3 R_Cref_t(     0.466974f,  -0.484961f, 0.739424f,
+//                            -0.763243f, -0.643311f, 0.060092f,
+//                            0.446537f,  -0.592422f, -0.670552f);
+//    // translation vector
+//    glm::vec3 t_Cref( -33.5013f, -4.4025f, -6.01074f);
+
+// using view 4 as basis, since it is in the middle, allows better judgement of cam movement while debugging
+    // calibration matrix
+    glm::mat3 K_Cref_t( 1721.1073359005352f, 0.f,                   936.36509770885857f,
+                        0.f,                 1716.9571493450005f,   546.95869231404413f,
+                        0.f,                 0.f,                   1.f);
+    // rotation matrix
+    glm::mat3 R_Cref_t(     0.759575f,   -0.643865f,  0.0921044f,
+                            -0.649526f,  -0.743465f,  0.159298f,
+                            -0.0340901f, -0.180823f,  -0.982925f);
+    // translation vector
+    glm::vec3 t_Cref( -18.9078f, -18.0548f, 4.16231f);
+
+    glm::mat3 K_Cref = glm::transpose(K_Cref_t);
+    glm::mat3 R_Cref = glm::transpose(R_Cref_t);
+    // adjust translation vector to coord frame
+    t_Cref = -R_Cref * t_Cref;
+
+    // construct transform from world to reference coordinates
+    // put R_Cref in upper left 3x3 part of matrix, then set 4th column to [t_Cref 1], all else 0
+    glm::mat4 worldCoords2CrefCoords(R_Cref);
+    worldCoords2CrefCoords[3] = glm::vec4(t_Cref, 1.f);
+//    std::cout << "R_Cref: " << glm::to_string(R_Cref) << std::endl;
+//    std::cout << "t_Cref: " << glm::to_string(t_Cref) << std::endl;
+//    std::cout << "worldCoords2CrefCoords: " << glm::to_string(worldCoords2CrefCoords) << std::endl;
+
+    // construct transform from world to reference coordinates, analog to worldCoords2CrefCoords
+    glm::mat4 worldCoords2CvirtCoords(m_R_view);
+    worldCoords2CvirtCoords[3] = glm::vec4(m_t_view, 1.f);
+
+    m_P_moveFromReferenceToVirtualView = worldCoords2CvirtCoords * glm::inverse(worldCoords2CrefCoords);
+//    glm::vec4 test()
+//    m_Projection = getProjectionFromCamCalibration(m_K2,f,n);
+
+    // change matrices according to openGL style (negating third columns of K and R)
+//    K_Cref[2] = -1.f * K_Cref[2];
+//    R_Cref[2] = -1.f * R_Cref[2];
+    std::cout << "det of R_Cref: " << glm::determinant(R_Cref) << std::endl;
+
+    m_Kinv_Cref = glm::inverse(K_Cref);
+    std::cout << "K2_inv: " << glm::to_string(m_Kinv_Cref) << std::endl;
+
+
+    std::cout << "K_Cref: " << glm::to_string(K_Cref) << std::endl;
+    std::cout << "m_K_view: " << glm::to_string(m_K_view) << std::endl;
+    std::cout << "R_Cref: " << glm::to_string(R_Cref) << std::endl;
+    std::cout << "m_R_view: " << glm::to_string(m_R_view) << std::endl;
+    std::cout << "t_Cref: " << glm::to_string(t_Cref) << std::endl;
+    std::cout << "m_t_view: " << glm::to_string(m_t_view) << std::endl;
+    std::cout << "worldCoords2CrefCoords: " << glm::to_string(worldCoords2CrefCoords) << std::endl;
+    std::cout << "worldCoords2CvirtCoords: " << glm::to_string(worldCoords2CvirtCoords) << std::endl;
+    std::cout << "m_P_moveFromReferenceToVirtualView: " << glm::to_string(m_P_moveFromReferenceToVirtualView) << std::endl;
+
+
+
+
+
+
+
+
+    float n = 15.0f;
+    float f = 150.f;
+    m_K_projectVirtualViewToImage = getProjectionFromCamCalibration(m_K_view,f,n);
 
 //    glm::mat4
 //            Projection = glm::perspective(45.0f, 16.0f / 9.0f, 0.1f, 500.0f);
@@ -402,19 +547,23 @@ void GLWidget::setupMatrices()
 //      -0.763243, -0.643311, 0.060092, -28.04061200532;
 //      0.446537, -0.592422, -0.670552, 8.320918414620001;
 //      0, 0, 0, 1]
-    glm::mat4 matWCoordFrame2CrefCoordFrame_t(
-                0.466974, -0.484961, 0.739424, 17.95368067746,
-                -0.763243, -0.643311, 0.060092, -28.04061200532,
-                0.446537, -0.592422, -0.670552, 8.320918414620001,
-                0,         0,          0,       1);
-    m_matWCoordFrame2CrefCoordFrame = glm::transpose(matWCoordFrame2CrefCoordFrame_t);
+//    glm::mat4 matWCoordFrame2CrefCoordFrame_t(
+//                0.466974, -0.484961, 0.739424, 17.95368067746,
+//                -0.763243, -0.643311, 0.060092, -28.04061200532,
+//                0.446537, -0.592422, -0.670552, 8.320918414620001,
+//                0,         0,          0,       1);
+//    m_matWCoordFrame2CrefCoordFrame = glm::transpose(matWCoordFrame2CrefCoordFrame_t);
 
 //    glm::mat4 View       = m_matWCoordFrame2CrefCoordFrame;
-    glm::mat4 View       = glm::lookAt(
-                                glm::vec3(0,0,-3), // Camera position in World Space
-                                glm::vec3(0,0,0), // looks at
-                                glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
-                           );
+//    // if I give the camera positive z position I have to multiply z by -1.0 in shader, to avoid clipping
+//    glm::mat4 View       = glm::lookAt(
+//                                glm::vec3(0,0,+0.10), // Camera position in World Space
+//                                glm::vec3(0,0,0), // looks at
+//                                glm::vec3(0,1,0)  // Head is up (set to 0,-1,0 to look upside-down)
+//                           );
+
+//    glm::perspective()
+
 //     looks good from here:
 //    position: -0.250721-0.486483-0.499824
 //    position+direction: -0.322914-0.4880520.497565
@@ -437,11 +586,11 @@ void GLWidget::setupMatrices()
 
 
     // Our ModelViewProjection : multiplication of our 3 matrices
-    m_MVP        = m_Projection * View * m_Model; // Remember, matrix multiplication is the other way around
+    m_MVP        = m_K_projectVirtualViewToImage * m_P_moveFromReferenceToVirtualView; // * View * m_Model; // Remember, matrix multiplication is the other way around
 //    m_MVP        = m_Projection;
 //    glm::mat4 MVP        = Projection; // Remember, matrix multiplication is the other way around
     std::cout << "Model: " << glm::to_string(m_Model) << std::endl;
-    std::cout << "View: " << glm::to_string(View) << std::endl;
+//    std::cout << "View: " << glm::to_string(View) << std::endl;
     std::cout << "Projection: " << glm::to_string(m_Projection) << std::endl;
     std::cout << "MVP: " << glm::to_string(m_MVP) << std::endl;
 }
@@ -451,6 +600,7 @@ void GLWidget::paintGL()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 //    glEnable(GL_CULL_FACE);
+//    glFrontFace(GL_CCW);
 
 
     m_texture_data->bind();
@@ -459,23 +609,16 @@ void GLWidget::paintGL()
     // Use texture unit 0 which contains cube.png
     m_program->setUniformValue("textureSampler", 0);
 
-
-    m_world.setToIdentity();
-    m_world.rotate(180.0f - (m_xRot / 16.0f), 1, 0, 0);
-    m_world.rotate(m_yRot / 16.0f, 0, 1, 0);
-    m_world.rotate(m_zRot / 16.0f, 0, 0, 1);
-
-
 //    glm::mat3x3 mat_out;
 //    glGetUniformfv(programID, K2_inv_ID, &mat_out[0][0]);
 //    std::cout << "mat_out: " << glm::to_string(mat_out) << std::endl;
 
     QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
     m_program->bind();
-    m_program->setUniformValue(m_projMatrixLoc, m_proj);
-    m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world);
-    QMatrix3x3 normalMatrix = m_world.normalMatrix();
-    m_program->setUniformValue(m_normalMatrixLoc, normalMatrix);
+//    m_program->setUniformValue(m_projMatrixLoc, m_proj);
+//    m_program->setUniformValue(m_mvMatrixLoc, m_camera * m_world);
+//    QMatrix3x3 normalMatrix = m_world.normalMatrix();
+//    m_program->setUniformValue(m_normalMatrixLoc, normalMatrix);
 
 //    m_program->setUniformValue(m_matMVP_Loc,&m_MVP[0][0]);
 //    m_program->setUniformValue(m_matK2_inv_Loc,m_K2_inv);
@@ -484,9 +627,9 @@ void GLWidget::paintGL()
 //    m_program->setUniformValue(m_matProjectXY_world_Loc,m_mat3x4ProjectXY_from_ref_to_virt_world);
 //    m_program->setUniformValue(m_matProjectZ_world_Loc,m_vec4ProjectZ_from_ref_to_virt_world);
     glUniformMatrix4fv(m_matMVP_Loc, 1, GL_FALSE, &m_MVP[0][0]);
-    glUniformMatrix3fv(m_matK2_inv_Loc, 1, GL_FALSE, &m_K2_inv[0][0]);
-    glUniformMatrix3fv(m_matProjectXY_Loc, 1, GL_FALSE, &m_mat3ProjectXY_from_ref_to_virt[0][0]);
-    glUniform3fv(m_matProjectZ_Loc, 1, &m_vec3ProjectZ_from_ref_to_virt[0]);
+    glUniformMatrix3fv(m_matK2_inv_Loc, 1, GL_FALSE, &m_Kinv_Cref[0][0]);
+//    glUniformMatrix3fv(m_matProjectXY_Loc, 1, GL_FALSE, &m_mat3ProjectXY_from_ref_to_virt[0][0]);
+//    glUniform3fv(m_matProjectZ_Loc, 1, &m_vec3ProjectZ_from_ref_to_virt[0]);
 //    glUniformMatrix3x4fv(m_matProjectXY_world_Loc, 1, GL_FALSE, &m_mat3x4ProjectXY_from_ref_to_virt_world[0][0]);
 //    glUniform4fv(m_matProjectZ_world_Loc, 1, &m_vec4ProjectZ_from_ref_to_virt_world[0]);
 
@@ -502,113 +645,13 @@ void GLWidget::paintGL()
 
     m_program->release();
 
-    // Index buffer
-//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
-
-
-    // Return to onscreen rendering:
-//        glBindFramebuffer(GL_DRAW_FRAMEBUFFER GL_FRAMEBUFFER_EXT, 0);
-//    glBindFramebuffer(1,0);
-
-//    // Draw the triangles onscreen!
-//    glDrawElements(
-//        GL_TRIANGLES,      // mode
-//        m_videoFrameTriangles_indices.size(),    // count
-//        GL_UNSIGNED_INT,   // type
-//        (void*)0           // element array buffer offset
-//    );
-
-
-//    // Bind our texture in Texture Unit 0
-//    glActiveTexture(GL_TEXTURE0);
-//    glBindTexture(GL_TEXTURE_2D, Texture);
-//    // Set our "myTextureSampler" sampler to user Texture Unit 0
-//    glUniform1i(TextureID, 0);
-
-//    // 1rst attribute buffer : vertices
-//    glEnableVertexAttribArray(0);
-//    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-//    glVertexAttribPointer(
-//        0,                  // attribute. No particular reason for 0, but must match the layout in the shader.
-//        3,                  // size
-//        GL_FLOAT,           // type
-//        GL_FALSE,           // normalized?
-//        0,                  // stride
-//        (void*)0            // array buffer offset
-//    );
-
-//    // 2nd attribute buffer : UVs
-//    glEnableVertexAttribArray(1);
-//    glBindBuffer(GL_ARRAY_BUFFER, uvbuffer);
-//    glVertexAttribPointer(
-//        1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-//        2,                                // size : U+V => 2
-//        GL_FLOAT,                         // type
-//        GL_FALSE,                         // normalized?
-//        0,                                // stride
-//        (void*)0                          // array buffer offset
-//    );
-
-//    // 3rd attribute buffer : depthmap
-//    glEnableVertexAttribArray(2);
-//    glBindBuffer(GL_ARRAY_BUFFER, depthmapbuffer);
-//    glVertexAttribPointer(
-//        2,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-//        1,                                // size : U+V => 2
-//        GL_FLOAT,                         // type
-//        GL_FALSE,                         // normalized?
-//        0,                                // stride
-//        (void*)0                          // array buffer offset
-//    );
-
-//    // Index buffer
-//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
-
-
-
-//    //Before drawing
-//    glBindFramebuffer(1, framebufferobject );
-
-//    // Draw the triangles to offscreen rendering buffer
-//    glDrawElements(
-//        GL_TRIANGLES,      // mode
-//        videoFrameTriangles_indices.size(),    // count
-//        GL_UNSIGNED_INT,   // type
-//        (void*)0           // element array buffer offset
-//    );
-
-//    //after drawing
-//    glReadBuffer(GL_COLOR_ATTACHMENT0);
-//    glReadPixels(0,0,width,height,GL_RGB,GL_FLOAT,&frameData[0]);
-
-//    // Return to onscreen rendering:
-////        glBindFramebuffer(GL_DRAW_FRAMEBUFFER GL_FRAMEBUFFER_EXT, 0);
-//    glBindFramebuffer(1,0);
-
-//    // Draw the triangles onscreen!
-//    glDrawElements(
-//        GL_TRIANGLES,      // mode
-//        videoFrameTriangles_indices.size(),    // count
-//        GL_UNSIGNED_INT,   // type
-//        (void*)0           // element array buffer offset
-//    );
-
-//    glDisableVertexAttribArray(0);
-//    glDisableVertexAttribArray(1);
-//    glDisableVertexAttribArray(2);
-
-//    // Swap buffers
-//    glfwSwapBuffers(window);
-//    glfwPollEvents();
-
-
-
 }
 
 void GLWidget::resizeGL(int w, int h)
 {
-    m_proj.setToIdentity();
-    m_proj.perspective(45.0f, GLfloat(w) / h, 0.01f, 100.0f);
+    ///TODO:
+//    m_proj.setToIdentity();
+//    m_proj.perspective(45.0f, GLfloat(w) / h, 0.01f, 100.0f);
 }
 
 void GLWidget::mousePressEvent(QMouseEvent *event)
@@ -633,6 +676,20 @@ void GLWidget::mouseMoveEvent(QMouseEvent *event)
 
 glm::mat4 GLWidget::getProjectionFromCamCalibration(glm::mat3 &calibrationMatrix, float clipFar, float clipNear)
 {
+    calibrationMatrix[2] = -1.f * calibrationMatrix[2];
+    clipFar = -1.0 * clipFar;
+    clipNear = -1.0 * clipNear;
+
+    glm::mat4 perspective(calibrationMatrix);
+    perspective[2][2] = clipNear + clipFar;
+    perspective[3][2] = clipNear * clipFar;
+    perspective[2][3] = -1.f;
+    perspective[3][3] = 0.f;
+
+    glm::mat4 toNDC = glm::ortho(0.f,1920.f,1080.f,0.f,clipNear,clipFar);
+
+    glm::mat4 Projection2 = toNDC * perspective;
+
     glm::mat4 Projection = glm::mat4(0.0f);
     Projection[0][0] = calibrationMatrix[0][0]/calibrationMatrix[2][0];
     Projection[1][1] = calibrationMatrix[1][1]/calibrationMatrix[2][1];
@@ -640,7 +697,13 @@ glm::mat4 GLWidget::getProjectionFromCamCalibration(glm::mat3 &calibrationMatrix
     Projection[3][2] = -2*(clipFar*clipNear)/(clipFar-clipNear);
     Projection[2][3] = -1.f;
 
-    return Projection;
+
+    std::cout << "Projection: " << glm::to_string(Projection) << std::endl;
+    std::cout << "perspective: " << glm::to_string(perspective) << std::endl;
+    std::cout << "toNDC: " << glm::to_string(toNDC) << std::endl;
+    std::cout << "Projection2: " << glm::to_string(Projection2) << std::endl;
+
+    return Projection2;
 }
 
 void GLWidget::loadVideoData(){
@@ -667,7 +730,7 @@ void GLWidget::loadVideoData(){
 }
 
 
-// function to generate the vertices corresponding to the pixels a frame. Each vertex is centered at a pixel, borders are padded.
+// function to generate the vertices corresponding to the pixels of a frame. Each vertex is centered at a pixel, borders are padded.
 void GLWidget::computeFrameVertices(int frameWidth, int frameHeight)
 {
     m_videoFrameTriangles_vertices.clear();

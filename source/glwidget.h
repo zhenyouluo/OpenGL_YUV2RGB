@@ -68,6 +68,8 @@ public:
     QSize minimumSizeHint() const Q_DECL_OVERRIDE;
     QSize sizeHint() const Q_DECL_OVERRIDE;
 
+    int heightForWidth(int w) const;
+
 public slots:
     void setXRotation(int angle);
     void setYRotation(int angle);
@@ -133,9 +135,7 @@ private:
     int m_texture_Loc;
     int m_depth_Loc;
 
-    QMatrix4x4 m_proj;
-    QMatrix4x4 m_camera;
-    QMatrix4x4 m_world;
+
 
     glm::mat4x3 m_P2;
     glm::mat3 m_mat3ProjectXY_from_ref_to_virt;
@@ -143,8 +143,8 @@ private:
     glm::mat4x4 m_P3;
     glm::mat3x4 m_mat3x4ProjectXY_from_ref_to_virt_world;
     glm::vec4 m_vec4ProjectZ_from_ref_to_virt_world;
-    glm::mat3 m_K2;
-    glm::mat3 m_K2_inv;
+
+    glm::mat3 m_Kinv_Cref;
     glm::mat4 m_Projection;
     glm::mat4 m_matWCoordFrame2CrefCoordFrame;
     glm::mat4 m_View;
@@ -153,7 +153,17 @@ private:
     // Our ModelViewProjection : multiplication of our 3 matrices
     glm::mat4 m_MVP;
 
+    QMatrix4x4 m_proj;
+    QMatrix4x4 m_K_camera;
+    QMatrix4x4 m_world;
 
+    glm::mat3 m_K_sourceImage2World;
+    glm::mat4 m_P_moveFromReferenceToVirtualView;
+    glm::mat4 m_K_projectVirtualViewToImage;
+
+    glm::mat3 m_K_view;
+    glm::mat3 m_R_view;
+    glm::vec3 m_t_view;
 
     std::vector<glm::vec3> m_videoFrameTriangles_vertices;
     // each vector (of 3 unsigned int) holds the indices for one triangle in the video frame
