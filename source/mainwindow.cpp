@@ -7,8 +7,8 @@
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
-    m_playbackController(new PlaybackController),
-    m_cameraParameters (new CameraParameterListModel)
+    m_cameraParameters (new CameraParameterListModel),
+    m_playbackController(new PlaybackController)
 {
     ui->setupUi(this);
 

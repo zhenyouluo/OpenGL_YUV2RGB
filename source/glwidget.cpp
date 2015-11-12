@@ -57,12 +57,12 @@
 
 
 GLWidget::GLWidget(QWidget *parent)
-    : QOpenGLWidget(parent),
-      m_vertice_indices_Vbo(QOpenGLBuffer::IndexBuffer), 
-      m_program(0),
-      m_texture_data(0),
+    : QOpenGLWidget(parent),      
+      m_frameWidth(1),
       m_frameHeight(1),
-      m_frameWidth(1)
+      m_vertice_indices_Vbo(QOpenGLBuffer::IndexBuffer),
+      m_texture_data(0),
+      m_program(0)
 {
     m_core = QCoreApplication::arguments().contains(QStringLiteral("--coreprofile"));
     // --transparent causes the clear color to be transparent. Therefore, on systems that
@@ -489,11 +489,6 @@ void GLWidget::paintGL()
 
     m_program->release();
 
-}
-
-void GLWidget::resizeGL(int w, int h)
-{
-    ///TODO: i don't think i have to do anything here
 }
 
 
