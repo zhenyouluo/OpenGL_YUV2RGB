@@ -52,3 +52,8 @@ OTHER_FILES += \
 
 RESOURCES += \
     resources.qrc
+
+linux {
+    QMAKE_CXXFLAGS += -fopenmp
+    QMAKE_LFLAGS *= -fopenmp
+}
