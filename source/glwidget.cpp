@@ -98,15 +98,10 @@ QSize GLWidget::sizeHint() const
 
 int GLWidget::heightForWidth(int w) const
 {
-    qDebug() << "width " << w;
-//    QSize test(w,w);
-//    QOpenGLWidget::setFixedSize(w,w);    
     if(m_frameWidth == 0) return w;
 
     double h = static_cast<double> (m_frameHeight) / m_frameWidth * w;
-//    double test2 = m_frameHeight / m_frameWidth * w;
     return h;
-
 }
 
 static void qNormalizeAngle(int &angle)
@@ -158,7 +153,7 @@ void GLWidget::cleanup()
     m_depth_Vbo.destroy();
     m_vertice_indices_Vbo.destroy();
     delete m_program;
-    delete m_texture_data;
+//    delete m_texture_data;
     m_program = 0;
     doneCurrent();
 }
@@ -168,7 +163,7 @@ void GLWidget::cameraSelectionChanged(QItemSelection newCamera)
 //    qDebug() << "tst" << newCamera.first();
 ///    ... how to acces it/ cast it/ whatever ...
 ///
-
+    if(newCamera.isEmpty()) return;
     qDebug() << "tst" << newCamera.first();
 ///    ... how to acces it/ cast it/ whatever ...
 ///
@@ -205,6 +200,149 @@ void GLWidget::cameraSelectionChanged(QItemSelection newCamera)
 
 }
 
+void GLWidget::updateFrame(const QImage &textureData, const QVector<uint8_t> &depthData)
+{
+    // Set new texture
+//    QImage texture = QImage(reinterpret_cast<const unsigned char*>(textureData.constData()),m_frameWidth,m_frameHeight,m_textureFormat);
+    m_texture_data = std::make_shared<QOpenGLTexture>(textureData,QOpenGLTexture::DontGenerateMipMaps);
+    // Set nearest filtering mode for texture minification
+    m_texture_data->setMinificationFilter(QOpenGLTexture::Nearest);
+    // Set bilinear filtering mode for texture magnification
+    m_texture_data->setMagnificationFilter(QOpenGLTexture::Linear);
+    // Wrap texture coordinates by repeating
+    m_texture_data->setWrapMode(QOpenGLTexture::Repeat);
+
+    // set new depth data
+    m_depth_Vbo.bind();
+    m_depth_Vbo.allocate(depthData.constData(), depthData.count() * sizeof(GL_UNSIGNED_BYTE));
+
+    update();
+}
+
+void GLWidget::updateFrame(const QImage &textureData, const QVector<float> &depthData)
+{
+    // Set new texture
+//    QImage texture = QImage(reinterpret_cast<const unsigned char*>(textureData.constData()),m_frameWidth,m_frameHeight,m_textureFormat);
+    m_texture_data = std::make_shared<QOpenGLTexture>(textureData,QOpenGLTexture::DontGenerateMipMaps);
+    // Set nearest filtering mode for texture minification
+    m_texture_data->setMinificationFilter(QOpenGLTexture::Nearest);
+    // Set bilinear filtering mode for texture magnification
+    m_texture_data->setMagnificationFilter(QOpenGLTexture::Linear);
+    // Wrap texture coordinates by repeating
+    m_texture_data->setWrapMode(QOpenGLTexture::Repeat);
+
+    // set new depth data
+    m_depth_Vbo.bind();
+    m_depth_Vbo.allocate(depthData.constData(), depthData.count() * sizeof(GLfloat));
+
+    update();
+}
+
+void GLWidget::updateFrame(const QImage &textureData, const QByteArray &depthData)
+{
+    // Set new texture
+//    QImage texture = QImage(reinterpret_cast<const unsigned char*>(textureData.constData()),m_frameWidth,m_frameHeight,m_textureFormat);
+    m_texture_data = std::make_shared<QOpenGLTexture>(textureData,QOpenGLTexture::DontGenerateMipMaps);
+    // Set nearest filtering mode for texture minification
+    m_texture_data->setMinificationFilter(QOpenGLTexture::Nearest);
+    // Set bilinear filtering mode for texture magnification
+    m_texture_data->setMagnificationFilter(QOpenGLTexture::Linear);
+    // Wrap texture coordinates by repeating
+    m_texture_data->setWrapMode(QOpenGLTexture::Repeat);
+
+//    QVector<float> depthDataVec;
+//    for(int i=0;i<depthData.count();i++)
+//    {
+////        uint8_t *test = depthData.at(i);
+//        int test2 = depthData.at(i);
+////        if(test2<0)
+////        {
+//            uint8_t test3 = test2;
+////        }
+
+//        depthDataVec.append((float) test3);
+//    }
+
+    // set new depth data
+    m_depth_Vbo.bind();
+    m_depth_Vbo.allocate(depthData.constData(), depthData.count() * sizeof(GLbyte));
+//    m_depth_Vbo.allocate(depthDataVec.constData(), depthDataVec.count() * sizeof(GLfloat));
+
+    update();
+}
+
+
+void GLWidget::updateFormat(int frameWidth, int frameHeight)
+{
+    m_frameWidth = frameWidth;
+    m_frameHeight = frameHeight;
+    m_textureFormat = QImage::Format_RGB32;
+
+    // compute frame vertices and copy to buffer
+    computeFrameVertices(m_frameWidth, m_frameHeight);
+    std::cout << "nr of pixels:" << m_frameWidth * m_frameHeight << std::endl;
+    std::cout << "nr of vertices:" << m_videoFrameTriangles_vertices.size() << std::endl;
+
+    m_vertices_Vbo.bind();
+    m_vertices_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    m_vertices_Vbo.allocate(&m_videoFrameTriangles_vertices[0], m_videoFrameTriangles_vertices.size()* sizeof(glm::vec3));
+
+    // compute indices of vertices and copy to buffer
+    computeFrameMesh(m_frameWidth, m_frameHeight);
+    std::cout << "nr of triangles:" << m_videoFrameTriangles_indices.size() / 3 << std::endl;
+
+    m_vertice_indices_Vbo.bind();
+    m_vertice_indices_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    m_vertice_indices_Vbo.allocate(&m_videoFrameTriangles_indices[0], m_videoFrameTriangles_indices.size() * sizeof(unsigned int));
+
+    // compute texture coordinates and copy to buffer
+    computeTextureCoordinates(m_frameWidth, m_frameHeight);
+    std::cout << "nr of uv coordinates produced:" << m_videoFrameTriangles_texture_uv.size() / 2 << std::endl;
+    m_texture_coordinates_Vbo.bind();
+    m_texture_coordinates_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    m_texture_coordinates_Vbo.allocate(&m_videoFrameTriangles_texture_uv[0], m_videoFrameTriangles_texture_uv.size() * sizeof(float));
+
+
+//    // very simple model for debugging: just put video on two triangles forming a rectangle
+//    // compute frame vertices and copy to buffer
+//    m_videoFrameTriangles_vertices.clear();
+//    m_videoFrameTriangles_vertices.push_back(glm::vec3(0,0,0));
+//    m_videoFrameTriangles_vertices.push_back(glm::vec3(m_frameWidth,0,0));
+//    m_videoFrameTriangles_vertices.push_back(glm::vec3(0,m_frameHeight,0));
+//    m_videoFrameTriangles_vertices.push_back(glm::vec3(m_frameWidth,m_frameHeight,0));
+//    m_videoFrameTriangles_indices.push_back(0);
+//    m_videoFrameTriangles_indices.push_back(2);
+//    m_videoFrameTriangles_indices.push_back(1);
+//    m_videoFrameTriangles_indices.push_back(1);
+//    m_videoFrameTriangles_indices.push_back(2);
+//    m_videoFrameTriangles_indices.push_back(3);
+//    m_videoFrameTriangles_texture_uv.clear();
+//    m_videoFrameTriangles_texture_uv.push_back(0.f);
+//    m_videoFrameTriangles_texture_uv.push_back(0.f);
+//    m_videoFrameTriangles_texture_uv.push_back(1.f);
+//    m_videoFrameTriangles_texture_uv.push_back(0.f);
+//    m_videoFrameTriangles_texture_uv.push_back(0.f);
+//    m_videoFrameTriangles_texture_uv.push_back(1.f);
+//    m_videoFrameTriangles_texture_uv.push_back(1.f);
+//    m_videoFrameTriangles_texture_uv.push_back(1.f);
+//    m_vertices_Vbo.create();
+//    m_vertices_Vbo.bind();
+//    m_vertices_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
+//    m_vertices_Vbo.allocate(&m_videoFrameTriangles_vertices[0], m_videoFrameTriangles_vertices.size()* sizeof(glm::vec3));
+//    // compute indices of vertices and copy to buffer
+//    std::cout << "nr of triangles:" << m_videoFrameTriangles_indices.size() / 3 << std::endl;
+//    m_vertice_indices_Vbo.create();
+//    m_vertice_indices_Vbo.bind();
+//    m_vertice_indices_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
+//    m_vertice_indices_Vbo.allocate(&m_videoFrameTriangles_indices[0], m_videoFrameTriangles_indices.size() * sizeof(unsigned int));
+//    m_texture_coordinates_Vbo.create();
+//    m_texture_coordinates_Vbo.bind();
+//    m_texture_coordinates_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
+//    m_texture_coordinates_Vbo.allocate(&m_videoFrameTriangles_texture_uv[0], m_videoFrameTriangles_texture_uv.size() * sizeof(float));
+
+
+}
+
 void GLWidget::initializeGL()
 {
     // In this example the widget's corresponding top-level window can change
@@ -236,10 +374,6 @@ void GLWidget::initializeGL()
     m_program->addShaderFromSourceFile(QOpenGLShader::Fragment,":shaders/fragmentshader.glsl");
     m_program->link();
     m_program->bind();
-    m_projMatrixLoc = m_program->uniformLocation("projMatrix");
-    m_mvMatrixLoc = m_program->uniformLocation("mvMatrix");
-    m_normalMatrixLoc = m_program->uniformLocation("normalMatrix");
-    m_lightPosLoc = m_program->uniformLocation("lightPos");
 
     m_matMVP_Loc = m_program->uniformLocation("MVP");
     m_matK2_inv_Loc = m_program->uniformLocation("K2_inv");
@@ -260,106 +394,28 @@ void GLWidget::initializeGL()
     QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
 
 
-//    // compute frame vertices and copy to buffer
-//    computeFrameVertices(m_frameWidth, m_frameHeight);
-//    std::cout << "nr of pixels:" << m_frameWidth * m_frameHeight << std::endl;
-//    std::cout << "nr of vertices:" << m_videoFrameTriangles_vertices.size() << std::endl;
-//    m_vertices_Vbo.create();
-//    m_vertices_Vbo.bind();
-//    m_vertices_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
-//    m_vertices_Vbo.allocate(&m_videoFrameTriangles_vertices[0], m_videoFrameTriangles_vertices.size()* sizeof(glm::vec3));
-
-//    // compute indices of vertices and copy to buffer
-//    computeFrameMesh(m_frameWidth, m_frameHeight);
-//    std::cout << "nr of triangles:" << m_videoFrameTriangles_indices.size() / 3 << std::endl;
-//    m_vertice_indices_Vbo.create();
-
-////    m_vertices_Vbo.
-//    m_vertice_indices_Vbo.bind();
-//    m_vertice_indices_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
-//    m_vertice_indices_Vbo.allocate(&m_videoFrameTriangles_indices[0], m_videoFrameTriangles_indices.size() * sizeof(unsigned int));
-
-//    // compute texture coordinates and copy to buffer
-//    computeTextureCoordinates(m_frameWidth, m_frameHeight);
-//    std::cout << "nr of uv coordinates produced:" << m_videoFrameTriangles_texture_uv.size() / 2 << std::endl;
-//    m_texture_coordinates_Vbo.create();
-//    m_texture_coordinates_Vbo.bind();
-//    m_texture_coordinates_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
-//    m_texture_coordinates_Vbo.allocate(&m_videoFrameTriangles_texture_uv[0], m_videoFrameTriangles_texture_uv.size() * sizeof(float));
-
-
-    // very simple model for debugging: just put video on two triangles forming a rectangle
-    // compute frame vertices and copy to buffer
-    m_videoFrameTriangles_vertices.clear();
-    m_videoFrameTriangles_vertices.push_back(glm::vec3(0,0,0));
-    m_videoFrameTriangles_vertices.push_back(glm::vec3(m_frameWidth,0,0));
-    m_videoFrameTriangles_vertices.push_back(glm::vec3(0,m_frameHeight,0));
-    m_videoFrameTriangles_vertices.push_back(glm::vec3(m_frameWidth,m_frameHeight,0));
-    m_videoFrameTriangles_indices.push_back(0);
-    m_videoFrameTriangles_indices.push_back(2);
-    m_videoFrameTriangles_indices.push_back(1);
-    m_videoFrameTriangles_indices.push_back(1);
-    m_videoFrameTriangles_indices.push_back(2);
-    m_videoFrameTriangles_indices.push_back(3);
-    m_videoFrameTriangles_texture_uv.clear();
-    m_videoFrameTriangles_texture_uv.push_back(0.f);
-    m_videoFrameTriangles_texture_uv.push_back(0.f);
-    m_videoFrameTriangles_texture_uv.push_back(1.f);
-    m_videoFrameTriangles_texture_uv.push_back(0.f);
-    m_videoFrameTriangles_texture_uv.push_back(0.f);
-    m_videoFrameTriangles_texture_uv.push_back(1.f);
-    m_videoFrameTriangles_texture_uv.push_back(1.f);
-    m_videoFrameTriangles_texture_uv.push_back(1.f);
+    // Create vertex buffer objects
     m_vertices_Vbo.create();
-    m_vertices_Vbo.bind();
-    m_vertices_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
-    m_vertices_Vbo.allocate(&m_videoFrameTriangles_vertices[0], m_videoFrameTriangles_vertices.size()* sizeof(glm::vec3));
-    // compute indices of vertices and copy to buffer
-    std::cout << "nr of triangles:" << m_videoFrameTriangles_indices.size() / 3 << std::endl;
     m_vertice_indices_Vbo.create();
-    m_vertice_indices_Vbo.bind();
-    m_vertice_indices_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
-    m_vertice_indices_Vbo.allocate(&m_videoFrameTriangles_indices[0], m_videoFrameTriangles_indices.size() * sizeof(unsigned int));
     m_texture_coordinates_Vbo.create();
-    m_texture_coordinates_Vbo.bind();
-    m_texture_coordinates_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
-    m_texture_coordinates_Vbo.allocate(&m_videoFrameTriangles_texture_uv[0], m_videoFrameTriangles_texture_uv.size() * sizeof(float));
-
-
-
-    loadVideoData();
-
-    // depthmap data
     m_depth_Vbo.create();
-    m_depth_Vbo.bind();
 
-    QImage test  = QImage("Poznan_Blocks_d0_1920x1080_25_f1_padded.bmp");
-//    test.constBits()
-//    m_depth_Vbo.allocate(test.constBits(), test.size().width()*test.size().height() * sizeof(GLubyte));
-    m_depth_Vbo.allocate(m_depth_data.constData(), m_depth_data.count() * sizeof(GLfloat));
+//    updateFormat();
+
+//    loadVideoData();
 
 
 
     // Store the vertex attribute bindings for the program.
     setupVertexAttribs();
 
-    // Light position is fixed.
-    m_program->setUniformValue(m_lightPosLoc, QVector3D(0, 0, 70));
-
     m_program->release();
 }
 
 void GLWidget::setupVertexAttribs()
 {
-//    ...
-//    m_logoVbo.bind();
-    QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
-//    f->glEnableVertexAttribArray(0);
-//    f->glEnableVertexAttribArray(1);
-//    f->glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), 0);
-//    f->glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), reinterpret_cast<void *>(3 * sizeof(GLfloat)));
-//    m_logoVbo.release();
 
+    QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
 
     // 1rst attribute buffer : vertices
     m_vertices_Vbo.bind();
@@ -385,30 +441,30 @@ void GLWidget::setupVertexAttribs()
         (void*)0                          // array buffer offset
     );
 
-//    // 3rd attribute buffer : depthmap
-//    m_depth_Vbo.bind();
-//    f->glEnableVertexAttribArray(m_depth_Loc);
-//    f->glVertexAttribPointer(
-//        m_depth_Loc,                      // attribute.
-//        1,                                // size : 1
-//        GL_UNSIGNED_BYTE,                         // type
-//        GL_FALSE,                         // normalized?
-//        0,                                // stride
-//        (void*)0                          // array buffer offset
-//    );
-
-
     // 3rd attribute buffer : depthmap
     m_depth_Vbo.bind();
     f->glEnableVertexAttribArray(m_depth_Loc);
     f->glVertexAttribPointer(
         m_depth_Loc,                      // attribute.
-        1,                                // size : U+V => 2
-        GL_FLOAT,                         // type
+        1,                                // size : 1
+        GL_UNSIGNED_BYTE,                         // type
         GL_FALSE,                         // normalized?
         0,                                // stride
         (void*)0                          // array buffer offset
     );
+
+
+//    // 3rd attribute buffer : depthmap
+//    m_depth_Vbo.bind();
+//    f->glEnableVertexAttribArray(m_depth_Loc);
+//    f->glVertexAttribPointer(
+//        m_depth_Loc,                      // attribute.
+//        1,                                // size : U+V => 2
+//        GL_FLOAT,                         // type
+//        GL_FALSE,                         // normalized?
+//        0,                                // stride
+//        (void*)0                          // array buffer offset
+//    );
 
 }
 
@@ -459,29 +515,29 @@ void GLWidget::setupMatrices()
 
 
 
-// // parameters of view 0 hardcoded
-//    // calibration matrix
-//    glm::mat3 K_Cref_t( 1731.8537611304296f, 0.f,                   944.82280521513485f,
-//                        0.f,                 1730.2451743420156f,   522.20735217757431f,
-//                        0.f,                 0.f,                   1.f);
-//    // rotation matrix
-//    glm::mat3 R_Cref_t(     0.466974f,  -0.484961f, 0.739424f,
-//                            -0.763243f, -0.643311f, 0.060092f,
-//                            0.446537f,  -0.592422f, -0.670552f);
-//    // translation vector
-//    glm::vec3 t_Cref( -33.5013f, -4.4025f, -6.01074f);
-
-// using view 4 as basis, since it is in the middle, allows better judgement of cam movement while debugging
+ // parameters of view 0 hardcoded
     // calibration matrix
-    glm::mat3 K_Cref_t( 1721.1073359005352f, 0.f,                   936.36509770885857f,
-                        0.f,                 1716.9571493450005f,   546.95869231404413f,
+    glm::mat3 K_Cref_t( 1731.8537611304296f, 0.f,                   944.82280521513485f,
+                        0.f,                 1730.2451743420156f,   522.20735217757431f,
                         0.f,                 0.f,                   1.f);
     // rotation matrix
-    glm::mat3 R_Cref_t(     0.759575f,   -0.643865f,  0.0921044f,
-                            -0.649526f,  -0.743465f,  0.159298f,
-                            -0.0340901f, -0.180823f,  -0.982925f);
+    glm::mat3 R_Cref_t(     0.466974f,  -0.484961f, 0.739424f,
+                            -0.763243f, -0.643311f, 0.060092f,
+                            0.446537f,  -0.592422f, -0.670552f);
     // translation vector
-    glm::vec3 t_Cref( -18.9078f, -18.0548f, 4.16231f);
+    glm::vec3 t_Cref( -33.5013f, -4.4025f, -6.01074f);
+
+//// using view 4 as basis, since it is in the middle, allows better judgement of cam movement while debugging
+//    // calibration matrix
+//    glm::mat3 K_Cref_t( 1721.1073359005352f, 0.f,                   936.36509770885857f,
+//                        0.f,                 1716.9571493450005f,   546.95869231404413f,
+//                        0.f,                 0.f,                   1.f);
+//    // rotation matrix
+//    glm::mat3 R_Cref_t(     0.759575f,   -0.643865f,  0.0921044f,
+//                            -0.649526f,  -0.743465f,  0.159298f,
+//                            -0.0340901f, -0.180823f,  -0.982925f);
+//    // translation vector
+//    glm::vec3 t_Cref( -18.9078f, -18.0548f, 4.16231f);
 
     glm::mat3 K_Cref = glm::transpose(K_Cref_t);
     glm::mat3 R_Cref = glm::transpose(R_Cref_t);
@@ -602,6 +658,8 @@ void GLWidget::paintGL()
 //    glEnable(GL_CULL_FACE);
 //    glFrontFace(GL_CCW);
 
+    // nothing loaded yet
+    if(m_texture_data == NULL) return;
 
     m_texture_data->bind();
     // Set our "myTextureSampler" sampler to user Texture Unit 0
@@ -686,7 +744,7 @@ glm::mat4 GLWidget::getProjectionFromCamCalibration(glm::mat3 &calibrationMatrix
     perspective[2][3] = -1.f;
     perspective[3][3] = 0.f;
 
-    glm::mat4 toNDC = glm::ortho(0.f,1920.f,1080.f,0.f,clipNear,clipFar);
+    glm::mat4 toNDC = glm::ortho(1920.f,0.f,1080.f,0.f,clipNear,clipFar);
 
     glm::mat4 Projection2 = toNDC * perspective;
 
@@ -712,10 +770,13 @@ void GLWidget::loadVideoData(){
     // Load the texture using any two methods
 //    loadTexture_from_BMP("Poznan_Blocks_t0_1920x1080_25_f1.bmp");
 
-    loadDepthMap("Poznan_Blocks_d0_1920x1080_25_f1_padded.bmp", m_frameWidth+2, m_frameHeight+2);
 
     // Load cube.png image
-    m_texture_data = new QOpenGLTexture(QImage("Poznan_Blocks_t0_1920x1080_25_f1.bmp").mirrored());
+    QImage test = QImage("Poznan_Blocks_t0_1920x1080_25_f1.bmp").mirrored();
+
+
+    m_texture_data = std::make_shared<QOpenGLTexture>(QImage(test.constBits(),test.width(),test.height(),test.format()),QOpenGLTexture::DontGenerateMipMaps);
+//    m_texture_data = new QOpenGLTexture(QImage("Poznan_Blocks_t0_1920x1080_25_f1.bmp").mirrored(),QOpenGLTexture::DontGenerateMipMaps);
 
     // Set nearest filtering mode for texture minification
     m_texture_data->setMinificationFilter(QOpenGLTexture::Nearest);
@@ -727,18 +788,34 @@ void GLWidget::loadVideoData(){
     // f.ex. texture coordinate (1.1, 1.2) is same as (0.1, 0.2)
     m_texture_data->setWrapMode(QOpenGLTexture::Repeat);
 
+    // depthmap data
+    loadDepthMap("Poznan_Blocks_d0_1920x1080_25_f1_padded.bmp", m_frameWidth+2, m_frameHeight+2);
+
+    m_depth_Vbo.bind();
+//    QImage test2  = QImage("Poznan_Blocks_d0_1920x1080_25_f1_padded.bmp");
+//    test.constBits()
+//    m_depth_Vbo.allocate(test.constBits(), test.size().width()*test.size().height() * sizeof(GLubyte));
+    m_depth_Vbo.allocate(m_depth_data.constData(), m_depth_data.count() * sizeof(GLfloat));
+
+
+
 }
 
+/// todo: reenable padding, how can i do it efficiently? or find other solution
 
 // function to generate the vertices corresponding to the pixels of a frame. Each vertex is centered at a pixel, borders are padded.
 void GLWidget::computeFrameVertices(int frameWidth, int frameHeight)
 {
     m_videoFrameTriangles_vertices.clear();
 
-    for( int h = -1; h < frameHeight + 1; h++)
+    for( int h = 0; h < frameHeight; h++)
     {
-        for(int w = -1; w < frameWidth + 1; w++)
+        for(int w = 0; w < frameWidth; w++)
         {
+//    for( int h = -1; h < frameHeight + 1; h++)
+//    {
+//        for(int w = -1; w < frameWidth + 1; w++)
+//        {
             m_videoFrameTriangles_vertices.push_back(glm::vec3(w,h,0));
     //                std::cout << w << " " <<  h << " "<< 0 << " "<< std::endl;
 
@@ -751,10 +828,14 @@ void GLWidget::computeFrameMesh(int frameWidth, int frameHeight)
 {
     m_videoFrameTriangles_indices.clear();
 
-    for( int h = 0; h <= frameHeight; h++)
+    for( int h = 0; h < frameHeight; h++)
     {
-        for(int w = 0; w <= frameWidth; w++)
+        for(int w = 0; w < frameWidth; w++)
         {
+//    for( int h = 0; h <= frameHeight; h++)
+//    {
+//        for(int w = 0; w <= frameWidth; w++)
+//        {
             //tblr: top bottom left right
             int index_pixel_tl = h*(frameWidth+2) + w;
             int index_pixel_tr = index_pixel_tl + 1;
@@ -781,10 +862,14 @@ void GLWidget::computeTextureCoordinates(int frameWidth, int frameHeight)
 {
     m_videoFrameTriangles_texture_uv.clear();
 
-    for( int h = -1; h < frameHeight + 1; h++)
+    for( int h = 0; h < frameHeight; h++)
     {
-        for(int w = -1; w < frameWidth + 1; w++)
+        for(int w = 0; w < frameWidth; w++)
         {
+//    for( int h = -1; h < frameHeight + 1; h++)
+//    {
+//        for(int w = -1; w < frameWidth + 1; w++)
+//        {
             float u,v;
 
             if(w == -1)

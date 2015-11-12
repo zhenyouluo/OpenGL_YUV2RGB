@@ -11,15 +11,6 @@ public:
     CameraParameterSet(QString cName, glm::mat3x3 matK, glm::mat3x3 matR, glm::vec3 vect)
         : camName(cName), K(matK), R(matR), t(vect) {}
 
-//    // function for reading a parameter file into a vector of CameraParameterSet objects
-//    static QList<CameraParameterSet> parseParameterFile(QString fileName);
-
-//    // need to implement these interface functions to display it in QListView
-//    int rowCount(const QModelIndex & parent = QModelIndex()) const;
-//    QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const;
-//    /// todo: implement this too for well behaved model. what is it for?
-////    QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
-
     QString getCamName() const;
     glm::mat3x3 getK() const;
     glm::mat3x3 getR() const;
@@ -36,12 +27,10 @@ Q_DECLARE_METATYPE(CameraParameterSet)
 
 class CameraParameterListModel : public QAbstractListModel
 {
-//    Q_OBJECT
-
 
 public:
+    CameraParameterListModel(){}
     CameraParameterListModel(QString fileName, QObject *parent = 0);
-//    ~CameraParameterListModel() {};
 
     // function for reading a parameter file into a vector of CameraParameterSet objects
     static QList<CameraParameterSet> parseParameterFile(QString fileName);
@@ -49,11 +38,15 @@ public:
     // need to implement these interface functions to display it in QListView
     int rowCount(const QModelIndex & parent = QModelIndex()) const;
     QVariant data(const QModelIndex & index, int role = Qt::DisplayRole) const;
+
+    // for adding elements
+    bool replaceListFromParameterFile(const QString &fileName);
+
     /// todo: implement this too for well behaved model. what is it for?
+    ////    QVariant headerData(int section, Qt::Orientation orientation, int role = Qt::DisplayRole) const;
 
 private:
-    QList<CameraParameterSet> cameraParameters;
+    QList<CameraParameterSet> m_cameraParameters;
 };
-//Q_DECLARE_METATYPE(CameraParameterListModel);
 
 #endif // CAMERAPARAMETERSET_H

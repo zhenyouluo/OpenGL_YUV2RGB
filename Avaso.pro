@@ -6,6 +6,8 @@
 
 QT       += core gui
 
+CONFIG += c++11
+
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = Avaso
@@ -20,16 +22,27 @@ LIBS += \
     /usr/lib/libMagick++-6.Q16HDRI.so
 #-lMagick++
 
+HEADERS  += \
+    source/mainwindow.h \
+    source/glwidget.h \
+    source/cameraparameterset.h \
+    source/textureplusdepthsequencelistmodel.h \
+    source/playbackcontroller.h \
+    source/typedef.h \
+    source/common.h \
+    source/yuvfile.h \
+    source/yuvsource.h
+
 SOURCES += \
     source/main.cpp \
     source/mainwindow.cpp \
     source/glwidget.cpp \
-    source/cameraparameterset.cpp
-
-HEADERS  += \
-    source/mainwindow.h \
-    source/glwidget.h \
-    source/cameraparameterset.h
+    source/cameraparameterset.cpp \
+    source/textureplusdepthsequencelistmodel.cpp \
+    source/playbackcontroller.cpp \
+    source/common.cpp \
+    source/yuvfile.cpp \
+    source/yuvsource.cpp
 
 FORMS    += forms/mainwindow.ui
 

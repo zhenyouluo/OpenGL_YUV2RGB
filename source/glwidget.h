@@ -51,6 +51,10 @@
 #include <QMatrix3x4>
 #include <QMatrix4x3>
 #include <QGenericMatrix>
+#include <memory>
+#include <QByteArray>
+#include <QVector>
+
 // Include GLM
 #include <glm/glm.hpp>
 #include <QItemSelection>
@@ -76,6 +80,11 @@ public slots:
     void setZRotation(int angle);
     void cleanup();
     void cameraSelectionChanged(QItemSelection newCamera);
+    void updateFrame(const QImage &textureData, const QVector<float> &depthData); // display a new frame
+    void updateFrame(const QImage &textureData, const QByteArray &depthData); // display a new frame
+    void updateFrame(const QImage &textureData, const QVector<uint8_t> &depthData);
+    void updateFormat(int frameWidth, int frameHeight); // change frame format (width, height, ...)
+
 
 signals:
     void xRotationChanged(int angle);
@@ -112,7 +121,8 @@ private:
     QOpenGLBuffer m_depth_Vbo;
 
     //    unsigned char * m_texture_data;
-    QOpenGLTexture *m_texture_data;
+    std::shared_ptr<QOpenGLTexture> m_texture_data;
+    QImage::Format m_textureFormat;
     QVector<GLfloat> m_vertices_data;
 //    QVector<GLfloat> m_texture_data;
     QVector<GLfloat> m_depth_data;
