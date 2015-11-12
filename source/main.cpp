@@ -13,12 +13,6 @@ int main(int argc, char *argv[])
     fmt.setSamples(4);
     fmt.setVersion(3, 3);
     fmt.setProfile(QSurfaceFormat::CoreProfile);
-//    if (QCoreApplication::arguments().contains(QStringLiteral("--multisample")))
-//        fmt.setSamples(4);
-//    if (QCoreApplication::arguments().contains(QStringLiteral("--coreprofile"))) {
-//        fmt.setVersion(3, 3);
-//        fmt.setProfile(QSurfaceFormat::CoreProfile);
-//    }
 
     QSurfaceFormat::setDefaultFormat(fmt);
     qDebug() << "Using OpenGL version " << fmt.version(); // << fmt.version().second;
