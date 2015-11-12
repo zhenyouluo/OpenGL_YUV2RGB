@@ -114,6 +114,13 @@
           </widget>
          </item>
          <item>
+          <widget class="QPushButton" name="makeRefCamButton">
+           <property name="text">
+            <string>Use camera as reference</string>
+           </property>
+          </widget>
+         </item>
+         <item>
           <widget class="QRadioButton" name="onlyCamsRadioButton">
            <property name="text">
             <string>Only camera arc</string>
@@ -172,6 +179,9 @@
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
+         </property>
+         <property name="tracking">
+          <bool>false</bool>
          </property>
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
