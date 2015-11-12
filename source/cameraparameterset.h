@@ -30,10 +30,6 @@ class CameraParameterListModel : public QAbstractListModel
 
 public:
     CameraParameterListModel(){}
-    CameraParameterListModel(QString fileName, QObject *parent = 0);
-
-    // function for reading a parameter file into a vector of CameraParameterSet objects
-    static QList<CameraParameterSet> parseParameterFile(QString fileName);
 
     // need to implement these interface functions to display it in QListView
     int rowCount(const QModelIndex & parent = QModelIndex()) const;
