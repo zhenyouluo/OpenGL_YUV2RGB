@@ -2,9 +2,9 @@
 
 #include <QDebug>
 #include <QImage>
+#include <QElapsedTimer>
 #include "textureplusdepthsequencelistmodel.h"
 #include "yuvfile.h"
-#include <Magick++.h>
 
 
 
@@ -27,9 +27,6 @@ static unsigned char *clip_buf = clp_buf+384;
 
 PlaybackController::PlaybackController()
 {
-    setObjectName("playbackController");
-//    QMetaObject::connectSlotsByName(parent());
-//    QMetaObject::connectSlotsByName(this);
     m_colorConversionMode = YUVC709ColorConversionType;
 
     // initialize clipping table
@@ -44,16 +41,56 @@ PlaybackController::PlaybackController()
 void PlaybackController::nextFrame()
 {    
     qDebug() << "Function Name: " << Q_FUNC_INFO;
+
+    m_currentFrame++;
+    // ensure current frame has valid index
+    if( (m_currentFrame < 1) || (m_currentFrame > m_numFrames)) m_currentFrame = m_numFrames;
+
+    setFrame(m_currentFrame);
 }
 
 void PlaybackController::previousFrame()
 {    
     qDebug() << "Function Name: " << Q_FUNC_INFO;
+    m_currentFrame--;
+    // ensure current frame has valid index
+    if( (m_currentFrame < 1) || (m_currentFrame > m_numFrames)) m_currentFrame = 1;
+
+    setFrame(m_currentFrame);
 }
 
 void PlaybackController::setFrame(int frameIdx)
-{
+{        
     qDebug() << "Function Name: " << Q_FUNC_INFO;
+
+
+    QElapsedTimer timer;
+    timer.start();
+
+    if (m_yuvTextureSource->pixelFormat() != YUVC_24RGBPixelFormat)
+    {
+        // read YUV444 frame from file - 16 bit LE words
+        m_yuvTextureSource->getOneFrame(&m_tmpBufferYUV444, frameIdx);
+
+        // convert from YUV444 (planar) - 16 bit words to RGB888 (interleaved) color format (in place)
+        convertYUV2RGB(&m_tmpBufferYUV444, &m_conversionBuffer, YUVC_24RGBPixelFormat, m_yuvTextureSource->pixelFormat());
+    }
+    else
+    {
+        // read RGB24 frame from file
+        m_yuvTextureSource->getOneFrame(&m_conversionBuffer, frameIdx);
+    }
+
+    // need to copy since buffer is modified again
+    QImage test= QImage((unsigned char*)m_conversionBuffer.data(),m_frameWidth,m_frameHeight,QImage::Format_RGB888).copy();
+
+    // depthmap data, using luma as depth, ignoring chroma
+    m_yuvDepthSource->getOneDepthFrame(&m_tmpBufferYUV444, frameIdx);
+
+    qDebug() << "Reading and converting texture and depth took" << timer.elapsed() << "milliseconds";
+
+    emit newFrame( test, m_tmpBufferYUV444);
+
 }
 
 void PlaybackController::setSequence(QItemSelection sequence)
@@ -96,6 +133,12 @@ void PlaybackController::setSequence(QItemSelection sequence)
                 numFramesDepth != numFramesTexture || frameRateDepth != frameRateTexture)
         {
             qWarning() << "Texture and Depth have different format! (lenght, frame size or rate)";
+
+            // using the length of the shorter sequence
+            if(numFramesDepth<numFramesTexture)
+                m_numFrames = numFramesDepth;
+            else
+                m_numFrames = numFramesTexture;
 //            m_yuvDepthSource.reset();
 //            m_yuvTextureSource.reset();
 //            return;
@@ -103,169 +146,21 @@ void PlaybackController::setSequence(QItemSelection sequence)
 
         m_frameWidth = widthTexture;
         m_frameHeight = heightTexture;
-        m_numFrames = numFramesTexture;
+
         m_frameRate = frameRateTexture;
 
         emit newSequenceFormat(m_frameWidth, m_frameHeight, m_numFrames, m_frameRate);
 
+        // ensure current frame has valid index
+        if( (m_currentFrame < 1) || (m_currentFrame > m_numFrames)) m_currentFrame = 1;
 
+        setFrame(m_currentFrame);
 
-
-
-        if (m_yuvTextureSource->pixelFormat() != YUVC_24RGBPixelFormat)
-        {
-            // read YUV444 frame from file - 16 bit LE words
-            m_yuvTextureSource->getOneFrame(&m_tmpBufferYUV444, 1);
-
-            // convert from YUV444 (planar) - 16 bit words to RGB888 (interleaved) color format (in place)
-            convertYUV2RGB(&m_tmpBufferYUV444, &m_conversionBuffer, YUVC_24RGBPixelFormat, m_yuvTextureSource->pixelFormat());
-        }
-        else
-        {
-            // read RGB24 frame from file
-            m_yuvTextureSource->getOneFrame(&m_conversionBuffer, 1);
-        }
-
-        // need to copy since buffer is modified again
-        QImage test= QImage((unsigned char*)m_conversionBuffer.data(),m_frameWidth,m_frameHeight,QImage::Format_RGB888).copy();
-
-
-        // Load cube.png image
-//        QImage test = QImage("Poznan_Blocks_t0_1920x1080_25_f1.bmp").mirrored();
-//        QByteArray texture = QByteArray::fromRawData(reinterpret_cast<const char*>(test.constBits()),test.size().height()*test.size().width()*3);
-
-        // depthmap data, using luma as depth, ignoring chroma
-        m_yuvDepthSource->getOneDepthFrame(&m_tmpBufferYUV444, 1);
-
-        // need to copy since buffer is modified again
-        QImage testD =QImage((unsigned char*)m_conversionBuffer.data(),m_frameWidth,m_frameHeight,QImage::Format_RGB888).copy();
-
-
-        loadDepthMap("Poznan_Blocks_d0_1920x1080_25_f1.bmp", m_frameWidth, m_frameHeight);
-        QByteArray depth = QByteArray::fromRawData(reinterpret_cast<const char*>(m_depth_data.constData()),m_depth_data.size());
-
-//        QVector<float> depthDataVec;
-//        for(int i=0;i<m_depth_data.count();i++)
-//        {
-//    //        uint8_t *test = depthData.at(i);
-//            int test2 = m_depth_data.at(i);
-//    //        if(test2<0)
-//    //        {
-//                uint8_t test3 = test2;
-//    //        }
-//            if((float) test2 != m_depth_data.at(i))
-//            {
-//                float test4 = m_depth_data.at(i);
-//                qDebug() << test2;
-//            }
-//            if((float) test2 != (float) m_tmpBufferYUV444.at(i))
-//            {
-//                float test4 = m_tmpBufferYUV444.at(i);
-//                qDebug() << test2;
-//            }
-//            depthDataVec.append((float) test3);
-//        }
-
-        // as uint8_t
-        QVector<uint8_t> depth_uint_8t;
-        for(int i=0;i<m_depth_data.count();i++)
-        {
-            if(m_depth_data[i]<0) qDebug() << "should not happen";
-            if(m_depth_data[i]>255) qDebug() << "should not happen";
-            depth_uint_8t.append(m_depth_data[i]);
-
-            if(depth_uint_8t[i]!=m_depth_data[i]) qDebug() << "should not happen";
-        }
-
-//        emit newFrame( test, m_depth_data);
-//        emit newFrame( test, depth_uint_8t);
-
-        emit newFrame( test, m_tmpBufferYUV444);
-
-//        emit newPlaybackSliderMaximum(m_numFrames);
-        // set our name (remove file extension)
-//        int lastPoint = p_source->getName().lastIndexOf(".");
-//        p_name = p_source->getName().left(lastPoint);
     }
 
 
 }
 
-
-
-void PlaybackController::loadDepthMap(const char * imagepath, int frameWidth, int frameHeight){
-
-//    float * data_float;
-    int imageSize;
-
-    printf("Reading image %s\n", imagepath);
-
-    Magick::InitializeMagick(NULL);
-
-    // Construct the image object. Separating image construction from the
-    // the read operation ensures that a failure to read the image file
-    // doesn't render the image object useless.
-    Magick::Image image;
-    try {
-        // Read a file into image object
-        image.read( imagepath );
-
-        int width = image.columns();
-        int height = image.rows();
-
-        //std::cout << image.magick() << std::endl;
-
-        imageSize = width*height;
-        // convert to float
-//        data_float = new float [imageSize];
-        m_depth_data.resize(imageSize);
-
-        // get a "pixel cache" for the entire image
-        Magick::PixelPacket *pixels = image.getPixels(0, 0, width, height);
-
-        // now you can access single pixels like a vector
-        int row = 0;
-        int column = 0;
-        for(size_t h = 0; h < height; h++)
-        {
-            for(size_t w = 0; w < width; w++)
-            {
-                int i = h*width + w;
-
-                Magick::Color color = pixels[h * width + w];
-                int test = (unsigned char) color.redQuantum();
-
-//                if(data[i]<min) min = data[i];
-//                if(data[i]>max) max = data[i];
-    //            data_float[i] = w%50 + 50;
-                m_depth_data[i] = test;
-//                data_float[i] = test;
-            }
-        }
-
-
-
-//        pixels[0] = Magick::Color(255, 0, 0);
-        // Crop the image to specified size (width, height, xOffset, yOffset)
-//        image.crop( Geometry(100,100, 100, 100) );
-
-        // Write the image to a file
-//        image.write( "x.gif" );
-    }
-    catch( Magick::Exception &error_ )
-    {
-//        std::cout << "Caught exception: " << error_.what() << std::endl;
-//        return 1;
-    }
-//    return 0;
-
-
-
-//    std::cout << "Read " << imageSize << " depth values" << std::endl;
-//    std::cout << "With padding: " << imageSize << " depth values" << max << std::endl;
-//    std::cout << "min: " << min << " max: " << max << std::endl;
-
-}
 
 
 void PlaybackController::convertYUV2RGB(QByteArray *sourceBuffer, QByteArray *targetBuffer, YUVCPixelFormatType targetPixelFormat, YUVCPixelFormatType srcPixelFormat)
