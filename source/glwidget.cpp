@@ -744,7 +744,7 @@ glm::mat4 GLWidget::getProjectionFromCamCalibration(glm::mat3 &calibrationMatrix
     perspective[2][3] = -1.f;
     perspective[3][3] = 0.f;
 
-    glm::mat4 toNDC = glm::ortho(1920.f,0.f,1080.f,0.f,clipNear,clipFar);
+    glm::mat4 toNDC = glm::ortho(0.f,(float) m_frameWidth,0.f,(float) m_frameHeight,clipNear,clipFar);
 
     glm::mat4 Projection2 = toNDC * perspective;
 
@@ -801,8 +801,6 @@ void GLWidget::loadVideoData(){
 
 }
 
-/// todo: reenable padding, how can i do it efficiently? or find other solution
-
 // function to generate the vertices corresponding to the pixels of a frame. Each vertex is centered at a pixel, borders are padded.
 void GLWidget::computeFrameVertices(int frameWidth, int frameHeight)
 {
@@ -812,13 +810,8 @@ void GLWidget::computeFrameVertices(int frameWidth, int frameHeight)
     {
         for(int w = 0; w < frameWidth; w++)
         {
-//    for( int h = -1; h < frameHeight + 1; h++)
-//    {
-//        for(int w = -1; w < frameWidth + 1; w++)
-//        {
-            m_videoFrameTriangles_vertices.push_back(glm::vec3(w,h,0));
-    //                std::cout << w << " " <<  h << " "<< 0 << " "<< std::endl;
 
+            m_videoFrameTriangles_vertices.push_back(glm::vec3(w,h,0));
         }
     }
 }
@@ -832,14 +825,10 @@ void GLWidget::computeFrameMesh(int frameWidth, int frameHeight)
     {
         for(int w = 0; w < frameWidth; w++)
         {
-//    for( int h = 0; h <= frameHeight; h++)
-//    {
-//        for(int w = 0; w <= frameWidth; w++)
-//        {
             //tblr: top bottom left right
-            int index_pixel_tl = h*(frameWidth+2) + w;
+            int index_pixel_tl = h*(frameWidth) + w;
             int index_pixel_tr = index_pixel_tl + 1;
-            int index_pixel_bl = (h+1)*(frameWidth+2) + w;
+            int index_pixel_bl = (h+1)*(frameWidth) + w;
             int index_pixel_br = index_pixel_bl + 1;
 
             // each pixel generates two triangles, specify them so orientation is counter clockwise
@@ -847,12 +836,10 @@ void GLWidget::computeFrameMesh(int frameWidth, int frameHeight)
             m_videoFrameTriangles_indices.push_back(index_pixel_tl);
             m_videoFrameTriangles_indices.push_back(index_pixel_bl);
             m_videoFrameTriangles_indices.push_back(index_pixel_tr);
-//                    std::cout << index_pixel_tl << " " <<  index_pixel_bl << " "<< index_pixel_tr << " "<< std::endl;
             // second triangle
             m_videoFrameTriangles_indices.push_back(index_pixel_bl);
             m_videoFrameTriangles_indices.push_back(index_pixel_br);
             m_videoFrameTriangles_indices.push_back(index_pixel_tr);
-//                    std::cout << index_pixel_bl << " " <<  index_pixel_br << " "<< index_pixel_tr << " "<< std::endl;
         }
     }
 }
@@ -866,45 +853,10 @@ void GLWidget::computeTextureCoordinates(int frameWidth, int frameHeight)
     {
         for(int w = 0; w < frameWidth; w++)
         {
-//    for( int h = -1; h < frameHeight + 1; h++)
-//    {
-//        for(int w = -1; w < frameWidth + 1; w++)
-//        {
             float u,v;
 
-            if(w == -1)
-            //padding left border
-            {
-                u = 0.f;
-            }
-            else if(w == frameWidth)
-            //padding right border
-            {
-                u = 1.f;
-            }
-            else
-            //in the image
-            {
-                u = (w + 0.5)/frameWidth;  //center of pixel
-            }
-
-            if(h == -1)
-            //padding upper border
-            {
-                v = 0.f;
-            }
-            else if(h == frameHeight)
-            //padding lower border
-            {
-                v = 1.f;
-            }
-            else
-            //in the image
-            {
-                v = (h + 0.5)/frameHeight;  //center of pixel
-            }
-
-    //                std::cout << "u: " << u <<  "v: " << v << std::endl;
+            u = (w + 0.5)/frameWidth;  //center of pixel
+            v = (h + 0.5)/frameHeight;  //center of pixel
 
             // set u for the pixel
             m_videoFrameTriangles_texture_uv.push_back(u);
