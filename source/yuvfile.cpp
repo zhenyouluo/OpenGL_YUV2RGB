@@ -376,18 +376,12 @@ void YUVFile::getOneDepthFrame(QByteArray* targetByteArray, unsigned int frameId
     }
 
     // for every format just use luma as depth, ignore chroma data
-
     readFrame( &p_tmpBufferYUV, frameIdx, p_width, p_height);
 
     const int componentWidth = p_width;
     const int componentHeight = p_height;
     // TODO: make this compatible with 10bit sequences
     const int componentLength = componentWidth*componentHeight; // number of bytes per luma frames
-//	const int horiSubsampling = horizontalSubSampling(p_srcPixelFormat);
-//	const int vertSubsampling = verticalSubSampling(p_srcPixelFormat);
-//	const int chromaWidth = horiSubsampling == 0 ? 0 : lumaWidth / horiSubsampling;
-//	const int chromaHeight = vertSubsampling == 0 ? 0 : lumaHeight / vertSubsampling;
-//	const int chromaLength = chromaWidth * chromaHeight; // number of bytes per chroma frame
 
     // make sure target buffer is big enough (YUV444 means 3 byte per sample)
     int targetBufferLength = componentWidth*componentHeight*bytePerComponent(p_srcPixelFormat);
@@ -395,32 +389,8 @@ void YUVFile::getOneDepthFrame(QByteArray* targetByteArray, unsigned int frameId
         targetByteArray->resize(targetBufferLength);
 
     // TODO: keep unsigned char for 10bit? use short?
-//    if (chromaLength == 0) {
-        const unsigned char *srcY = (unsigned char*)p_tmpBufferYUV.data();
-        unsigned char *dstY = (unsigned char*)targetByteArray->data();
-//        unsigned char *dstU = dstY + componentLength;
-        memcpy(dstY, srcY, componentLength);
-//        memset(dstU, 128, 2 * componentLength);
-//    }
-
-
-
-
-//    // check if we need to do chroma upsampling
-//    if(p_srcPixelFormat != YUVC_444YpCbCr8PlanarPixelFormat && p_srcPixelFormat != YUVC_444YpCbCr12NativePlanarPixelFormat && p_srcPixelFormat != YUVC_444YpCbCr16NativePlanarPixelFormat && p_srcPixelFormat != YUVC_24RGBPixelFormat )
-//    {
-//        // read one frame into temporary buffer
-//        readFrame( &p_tmpBufferYUV, frameIdx, p_width, p_height);
-
-
-//        //use dummy data to check
-//        // convert original data format into YUV444 planar format
-////        convert2YUV444(&p_tmpBufferYUV, p_width, p_height, targetByteArray);
-//    }
-//    else    // source and target format are identical --> no conversion necessary
-//    {
-//        // read one frame into cached frame (already in YUV444 format)
-//        readFrame( targetByteArray, frameIdx, p_width, p_height);
-//    }
+    const unsigned char *srcY = (unsigned char*)p_tmpBufferYUV.data();
+    unsigned char *dstY = (unsigned char*)targetByteArray->data();
+    memcpy(dstY, srcY, componentLength);
 }
 
