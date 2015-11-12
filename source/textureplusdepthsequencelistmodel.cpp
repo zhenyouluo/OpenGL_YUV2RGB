@@ -1,10 +1,5 @@
 #include "textureplusdepthsequencelistmodel.h"
 
-TexturePlusDepthSequenceListModel::TexturePlusDepthSequenceListModel()
-{
-
-}
-
 
 QString SequenceMetaDataItem::fileNameTexture() const
 {
@@ -63,16 +58,6 @@ QVariant TexturePlusDepthSequenceListModel::data(const QModelIndex &index, int r
     else
         return QVariant();
 }
-
-//bool TexturePlusDepthSequenceListModel::insertRows(int row, int count, const QModelIndex &parent)
-//{
-
-//}
-
-//bool TexturePlusDepthSequenceListModel::removeRows(int row, int count, const QModelIndex &parent)
-//{
-
-//}
 
 bool TexturePlusDepthSequenceListModel::insertItem(SequenceMetaDataItem &item)
 {
