@@ -21,14 +21,19 @@ public:
     ~MainWindow();
 
 public slots:
+    // automatically connected by naming scheme
     void on_loadCamParamsButton_clicked();
     void on_loadTextureAndDepthButton_clicked();
     void on_nextFrameButton_clicked();
     void on_previousFrameButton_clicked();
+    void on_setRefCamButton_clicked();
+
+    // manually connected
     void updateGUIControls(int frameWidth, int frameHeight, int numFrames, int frameRate);
 
 signals:
     void nextFrame();
+    void refCamChanged(CameraParameterSet refCam);
 
 private:
     Ui::MainWindow *ui;

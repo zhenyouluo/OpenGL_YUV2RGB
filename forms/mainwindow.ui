@@ -114,7 +114,7 @@
           </widget>
          </item>
          <item>
-          <widget class="QPushButton" name="makeRefCamButton">
+          <widget class="QPushButton" name="setRefCamButton">
            <property name="text">
             <string>Use camera as reference</string>
            </property>

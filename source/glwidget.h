@@ -59,6 +59,8 @@
 #include <glm/glm.hpp>
 #include <QItemSelection>
 
+#include "cameraparameterset.h"
+
 QT_FORWARD_DECLARE_CLASS(QOpenGLShaderProgram)
 
 class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions
@@ -76,12 +78,12 @@ public:
 
 public slots:
     void cleanup();
-    void cameraSelectionChanged(QItemSelection newCamera);
+    void updateViewCamera(QItemSelection newCamera);
     void updateFrame(const QImage &textureData, const QVector<float> &depthData); // display a new frame
     void updateFrame(const QImage &textureData, const QByteArray &depthData); // display a new frame
     void updateFrame(const QImage &textureData, const QVector<uint8_t> &depthData);
     void updateFormat(int frameWidth, int frameHeight); // change frame format (width, height, ...)
-
+    void updateReferenceCamera(CameraParameterSet refCam);
 
 signals:
 
@@ -131,6 +133,9 @@ private:
     glm::mat4 m_P_moveFromReferenceToVirtualView;
     glm::mat4 m_K_projectVirtualViewToImage;
 
+    glm::mat3 m_K_ref;
+    glm::mat3 m_R_ref;
+    glm::vec3 m_t_ref;
     glm::mat3 m_K_view;
     glm::mat3 m_R_view;
     glm::vec3 m_t_view;

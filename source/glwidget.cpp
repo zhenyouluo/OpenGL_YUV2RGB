@@ -115,8 +115,10 @@ void GLWidget::cleanup()
     doneCurrent();
 }
 
-void GLWidget::cameraSelectionChanged(QItemSelection newCamera)
+void GLWidget::updateViewCamera(QItemSelection newCamera)
 {
+    qDebug() << "Function Name: " << Q_FUNC_INFO;
+
     if(newCamera.isEmpty()) return;
 
     CameraParameterSet camParams = newCamera.indexes().first().data(Qt::UserRole).value<CameraParameterSet>();
@@ -266,6 +268,21 @@ void GLWidget::updateFormat(int frameWidth, int frameHeight)
 
 }
 
+void GLWidget::updateReferenceCamera(CameraParameterSet refCam)
+{
+    qDebug() << "Function Name: " << Q_FUNC_INFO;
+
+    m_K_ref = refCam.getK();
+    m_R_ref = refCam.getR();
+    m_t_ref = refCam.getT();
+
+    //recompute opengl matrices
+    setupMatrices();
+
+    // draw from new perspective
+    update();
+}
+
 void GLWidget::initializeGL()
 {
     // In this example the widget's corresponding top-level window can change
@@ -383,71 +400,21 @@ void GLWidget::setupVertexAttribs()
 
 void GLWidget::setupMatrices()
 {
+    qDebug() << "Function Name: " << Q_FUNC_INFO;
 
- // parameters of view 0 hardcoded
-    // calibration matrix
-    glm::mat3 K_Cref_t( 1731.8537611304296f, 0.f,                   944.82280521513485f,
-                        0.f,                 1730.2451743420156f,   522.20735217757431f,
-                        0.f,                 0.f,                   1.f);
-    // rotation matrix
-    glm::mat3 R_Cref_t(     0.466974f,  -0.484961f, 0.739424f,
-                            -0.763243f, -0.643311f, 0.060092f,
-                            0.446537f,  -0.592422f, -0.670552f);
-    // translation vector
-    glm::vec3 t_Cref( -33.5013f, -4.4025f, -6.01074f);
-
-//// using view 4 as basis, since it is in the middle, allows better judgement of cam movement while debugging
-//    // calibration matrix
-//    glm::mat3 K_Cref_t( 1721.1073359005352f, 0.f,                   936.36509770885857f,
-//                        0.f,                 1716.9571493450005f,   546.95869231404413f,
-//                        0.f,                 0.f,                   1.f);
-//    // rotation matrix
-//    glm::mat3 R_Cref_t(     0.759575f,   -0.643865f,  0.0921044f,
-//                            -0.649526f,  -0.743465f,  0.159298f,
-//                            -0.0340901f, -0.180823f,  -0.982925f);
-//    // translation vector
-//    glm::vec3 t_Cref( -18.9078f, -18.0548f, 4.16231f);
-
-    glm::mat3 K_Cref = glm::transpose(K_Cref_t);
-    glm::mat3 R_Cref = glm::transpose(R_Cref_t);
-    // adjust translation vector to coord frame
-    t_Cref = -R_Cref * t_Cref;
+    m_Kinv_Cref = glm::inverse(m_K_ref);
 
     // construct transform from world to reference coordinates
     // put R_Cref in upper left 3x3 part of matrix, then set 4th column to [t_Cref 1], all else 0
-    glm::mat4 worldCoords2CrefCoords(R_Cref);
-    worldCoords2CrefCoords[3] = glm::vec4(t_Cref, 1.f);
-//    std::cout << "R_Cref: " << glm::to_string(R_Cref) << std::endl;
-//    std::cout << "t_Cref: " << glm::to_string(t_Cref) << std::endl;
-//    std::cout << "worldCoords2CrefCoords: " << glm::to_string(worldCoords2CrefCoords) << std::endl;
+    glm::mat4 worldCoords2CrefCoords(m_R_ref);
+    worldCoords2CrefCoords[3] = glm::vec4(m_t_ref, 1.f);
 
     // construct transform from world to reference coordinates, analog to worldCoords2CrefCoords
     glm::mat4 worldCoords2CvirtCoords(m_R_view);
     worldCoords2CvirtCoords[3] = glm::vec4(m_t_view, 1.f);
 
+    // transform matrix from ref view to virtual view
     m_P_moveFromReferenceToVirtualView = worldCoords2CvirtCoords * glm::inverse(worldCoords2CrefCoords);
-//    glm::vec4 test()
-//    m_Projection = getProjectionFromCamCalibration(m_K2,f,n);
-
-    // change matrices according to openGL style (negating third columns of K and R)
-//    K_Cref[2] = -1.f * K_Cref[2];
-//    R_Cref[2] = -1.f * R_Cref[2];
-    std::cout << "det of R_Cref: " << glm::determinant(R_Cref) << std::endl;
-
-    m_Kinv_Cref = glm::inverse(K_Cref);
-    std::cout << "K2_inv: " << glm::to_string(m_Kinv_Cref) << std::endl;
-
-
-    std::cout << "K_Cref: " << glm::to_string(K_Cref) << std::endl;
-    std::cout << "m_K_view: " << glm::to_string(m_K_view) << std::endl;
-    std::cout << "R_Cref: " << glm::to_string(R_Cref) << std::endl;
-    std::cout << "m_R_view: " << glm::to_string(m_R_view) << std::endl;
-    std::cout << "t_Cref: " << glm::to_string(t_Cref) << std::endl;
-    std::cout << "m_t_view: " << glm::to_string(m_t_view) << std::endl;
-    std::cout << "worldCoords2CrefCoords: " << glm::to_string(worldCoords2CrefCoords) << std::endl;
-    std::cout << "worldCoords2CvirtCoords: " << glm::to_string(worldCoords2CvirtCoords) << std::endl;
-    std::cout << "m_P_moveFromReferenceToVirtualView: " << glm::to_string(m_P_moveFromReferenceToVirtualView) << std::endl;
-
 
     float n = 15.0f;
     float f = 150.f;
@@ -456,11 +423,24 @@ void GLWidget::setupMatrices()
     // Our ModelViewProjection : projection of model to different view and then to image
     m_MVP        = m_K_projectVirtualViewToImage * m_P_moveFromReferenceToVirtualView;
 
-    std::cout << "MVP: " << glm::to_string(m_MVP) << std::endl;
+    //    std::cout << "det of R_Cref: " << glm::determinant(m_R_ref) << std::endl;
+    //    std::cout << "K2_inv: " << glm::to_string(m_Kinv_Cref) << std::endl;
+    //    std::cout << "K_Cref: " << glm::to_string(m_K_ref) << std::endl;
+    //    std::cout << "m_K_view: " << glm::to_string(m_K_view) << std::endl;
+    //    std::cout << "R_Cref: " << glm::to_string(m_R_ref) << std::endl;
+    //    std::cout << "m_R_view: " << glm::to_string(m_R_view) << std::endl;
+    //    std::cout << "t_Cref: " << glm::to_string(m_t_ref) << std::endl;
+    //    std::cout << "m_t_view: " << glm::to_string(m_t_view) << std::endl;
+    //    std::cout << "worldCoords2CrefCoords: " << glm::to_string(worldCoords2CrefCoords) << std::endl;
+    //    std::cout << "worldCoords2CvirtCoords: " << glm::to_string(worldCoords2CvirtCoords) << std::endl;
+    //    std::cout << "m_P_moveFromReferenceToVirtualView: " << glm::to_string(m_P_moveFromReferenceToVirtualView) << std::endl;
+    //    std::cout << "MVP: " << glm::to_string(m_MVP) << std::endl;
 }
 
 void GLWidget::paintGL()
 {
+    qDebug() << "Function Name: " << Q_FUNC_INFO;
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 //    glEnable(GL_CULL_FACE);

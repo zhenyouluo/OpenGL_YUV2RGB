@@ -30,12 +30,13 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(m_playbackController,SIGNAL(newFrame(QImage,QByteArray)),ui->videoWidget,SLOT(updateFrame(QImage,QByteArray)));
     connect(m_playbackController,SIGNAL(newFrame(QImage,QVector<uint8_t>)),ui->videoWidget,SLOT(updateFrame(QImage,QVector<uint8_t>)));
     connect(ui->playbackLocationSlider,SIGNAL(valueChanged(int)),m_playbackController,SLOT(setFrame(int)));
-
-    // connect list views
-    connect(ui->camListView->selectionModel(),SIGNAL(selectionChanged(QItemSelection,QItemSelection)), // camListView to video widget
-            ui->videoWidget, SLOT(cameraSelectionChanged(QItemSelection)));
     connect(ui->yuvListView->selectionModel(),SIGNAL(selectionChanged(QItemSelection,QItemSelection)), // yuvListView to controller
             m_playbackController,SLOT(setSequence(QItemSelection)));
+
+    // connect video widget
+    connect(ui->camListView->selectionModel(),SIGNAL(selectionChanged(QItemSelection,QItemSelection)), // camListView to video widget
+            ui->videoWidget, SLOT(updateViewCamera(QItemSelection)));
+    connect(this,SIGNAL(refCamChanged(CameraParameterSet)),ui->videoWidget,SLOT(updateReferenceCamera(CameraParameterSet)));
 
     //pure gui interconnections
     connect(ui->playbackLocationSlider,SIGNAL(valueChanged(int)),ui->frameCounterSpinBox,SLOT(setValue(int)));
@@ -50,36 +51,41 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_loadCamParamsButton_clicked()
 {
-//    QString fileName = QFileDialog::getOpenFileName(
-//                this,
-//                tr("Open camera parameters"),
-//                "",
-//                "Text files (*.txt);;All files (*)");
+    QString fileName = QFileDialog::getOpenFileName(
+                this,
+                tr("Open camera parameters"),
+                "",
+                "Text files (*.txt);;All files (*)");
 //    if(fileName.isEmpty()) return;
 
     // speed up debugging
-    QString fileName = QString("/home/ient/Software/ViewSynthesis-OpenGL/build-Avaso-Desktop-Debug/cam_param_blocks.txt");
+    if(fileName.isEmpty())
+        fileName = QString("/home/ient/Software/ViewSynthesis-OpenGL/build-Avaso-Desktop-Debug/cam_param_blocks.txt");
 
     m_cameraParameters->replaceListFromParameterFile(fileName);
 }
 
 void MainWindow::on_loadTextureAndDepthButton_clicked()
 {
-//    QString fileNameTexture = QFileDialog::getOpenFileName(
-//                this,
-//                tr("Open sequence texture"),
-//                "",
-//                "Text files (*.yuv);;All files (*)");
-//    QString fileNameDepth = QFileDialog::getOpenFileName(
-//                this,
-//                tr("Open sequence depth"),
-//                "",
-//                "Text files (*.yuv);;All files (*)");
+    QString fileNameTexture = QFileDialog::getOpenFileName(
+                this,
+                tr("Open sequence texture"),
+                "",
+                "Text files (*.yuv);;All files (*)");
+    QString fileNameDepth = QFileDialog::getOpenFileName(
+                this,
+                tr("Open sequence depth"),
+                "",
+                "Text files (*.yuv);;All files (*)");
+
 //    if(fileNameDepth.isEmpty() || fileNameTexture.isEmpty()) return;
 
     // speed up debugging
-    QString fileNameTexture = QString("/original/3D_FTV/PoznanBlocks/1-ColorCorrected/Poznan_Blocks_t0_1920x1080_25.yuv");
-    QString fileNameDepth =     QString("/original/3D_FTV/PoznanBlocks/depth_8bit_400/Poznan_Blocks_d0_1920x1080_25.yuv");
+    if(fileNameDepth.isEmpty() || fileNameTexture.isEmpty())
+    {
+        fileNameTexture = QString("/original/3D_FTV/PoznanBlocks/1-ColorCorrected/Poznan_Blocks_t0_1920x1080_25.yuv");
+        fileNameDepth =     QString("/original/3D_FTV/PoznanBlocks/depth_8bit_400/Poznan_Blocks_d0_1920x1080_25.yuv");
+    }
 
     /// todo: only stores filenames, since playbackcontroller finds out format
     SequenceMetaDataItem sequence(fileNameTexture,fileNameDepth,0,0);
@@ -102,6 +108,23 @@ void MainWindow::on_previousFrameButton_clicked()
     int frameIdx = ui->playbackLocationSlider->value() - 1;
     ui->playbackLocationSlider->setValue(frameIdx);
     ui->frameCounterSpinBox->setValue(frameIdx);
+}
+
+void MainWindow::on_setRefCamButton_clicked()
+{
+    CameraParameterSet refCam = ui->camListView->currentIndex().data(Qt::UserRole).value<CameraParameterSet>();
+
+    emit refCamChanged(refCam);
+
+//    m_K_view = camParams.getK();
+//    m_R_view = camParams.getR();
+//    m_t_view = camParams.getT();
+
+//    //recompute opengl matrices
+//    setupMatrices();
+
+//    // draw from new perspective
+//    update();
 }
 
 void MainWindow::updateGUIControls(int frameWidth, int frameHeight, int numFrames, int frameRate)
