@@ -494,6 +494,8 @@ void GLWidget::paintGL()
 
 glm::mat4 GLWidget::getProjectionFromCamCalibration(glm::mat3 &calibrationMatrix, float clipFar, float clipNear)
 {
+    calibrationMatrix[0] = -1.f * calibrationMatrix[0];
+    calibrationMatrix[1] = -1.f * calibrationMatrix[1];
     calibrationMatrix[2] = -1.f * calibrationMatrix[2];
     clipFar = -1.0 * clipFar;
     clipNear = -1.0 * clipNear;
@@ -504,19 +506,11 @@ glm::mat4 GLWidget::getProjectionFromCamCalibration(glm::mat3 &calibrationMatrix
     perspective[2][3] = -1.f;
     perspective[3][3] = 0.f;
 
-    glm::mat4 toNDC = glm::ortho(0.f,(float) m_frameWidth,0.f,(float) m_frameHeight,clipNear,clipFar);
+    glm::mat4 toNDC = glm::ortho(0.f,(float) m_frameWidth,(float) m_frameHeight,0.f,clipNear,clipFar);
 
     glm::mat4 Projection2 = toNDC * perspective;
 
-    glm::mat4 Projection = glm::mat4(0.0f);
-    Projection[0][0] = calibrationMatrix[0][0]/calibrationMatrix[2][0];
-    Projection[1][1] = calibrationMatrix[1][1]/calibrationMatrix[2][1];
-    Projection[2][2] = -(clipFar+clipNear)/(clipFar-clipNear);
-    Projection[3][2] = -2*(clipFar*clipNear)/(clipFar-clipNear);
-    Projection[2][3] = -1.f;
 
-
-    std::cout << "Projection: " << glm::to_string(Projection) << std::endl;
     std::cout << "perspective: " << glm::to_string(perspective) << std::endl;
     std::cout << "toNDC: " << glm::to_string(toNDC) << std::endl;
     std::cout << "Projection2: " << glm::to_string(Projection2) << std::endl;
