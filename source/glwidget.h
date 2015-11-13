@@ -78,12 +78,14 @@ public:
 
 public slots:
     void cleanup();
-    void updateViewCamera(QItemSelection newCamera);
     void updateFrame(const QImage &textureData, const QVector<float> &depthData); // display a new frame
     void updateFrame(const QImage &textureData, const QByteArray &depthData); // display a new frame
     void updateFrame(const QImage &textureData, const QVector<uint8_t> &depthData);
     void updateFormat(int frameWidth, int frameHeight); // change frame format (width, height, ...)
     void updateReferenceCamera(CameraParameterSet refCam);
+    void updateViewCamera(QItemSelection newCamera);
+    void updateZNear(float zNear);
+    void updateZFar(float zFar);
 
 signals:
 
@@ -139,6 +141,9 @@ private:
     glm::mat3 m_K_view;
     glm::mat3 m_R_view;
     glm::vec3 m_t_view;
+
+    float m_zNear;
+    float m_zFar;
 
     std::vector<glm::vec3> m_videoFrameTriangles_vertices;
     // each vector (of 3 unsigned int) holds the indices for one triangle in the video frame

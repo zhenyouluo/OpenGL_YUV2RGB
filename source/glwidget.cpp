@@ -71,6 +71,9 @@ GLWidget::GLWidget(QWidget *parent)
     if (m_transparent)
         setAttribute(Qt::WA_TranslucentBackground);
 
+    m_zNear = 15;
+    m_zFar = 150;
+
     QSizePolicy p(sizePolicy());
 //    p.setHorizontalPolicy(QSizePolicy::Fixed);
 //    p.setVerticalPolicy(QSizePolicy::Fixed);
@@ -126,6 +129,33 @@ void GLWidget::updateViewCamera(QItemSelection newCamera)
     m_K_view = camParams.getK();
     m_R_view = camParams.getR();
     m_t_view = camParams.getT();
+
+    //recompute opengl matrices
+    setupMatrices();
+
+    // draw from new perspective
+    update();
+}
+
+void GLWidget::updateZNear(float zNear)
+{
+    qDebug() << "Function Name: " << Q_FUNC_INFO;
+
+    m_zNear = zNear;
+
+    //recompute opengl matrices
+    setupMatrices();
+
+    // draw from new perspective
+    update();
+
+}
+
+void GLWidget::updateZFar(float zFar)
+{
+    qDebug() << "Function Name: " << Q_FUNC_INFO;
+
+    m_zFar = zFar;
 
     //recompute opengl matrices
     setupMatrices();
@@ -416,9 +446,7 @@ void GLWidget::setupMatrices()
     // transform matrix from ref view to virtual view
     m_P_moveFromReferenceToVirtualView = worldCoords2CvirtCoords * glm::inverse(worldCoords2CrefCoords);
 
-    float n = 15.0f;
-    float f = 150.f;
-    m_K_projectVirtualViewToImage = getProjectionFromCamCalibration(m_K_view,f,n);
+    m_K_projectVirtualViewToImage = getProjectionFromCamCalibration(m_K_view,m_zFar,m_zNear);
 
     // Our ModelViewProjection : projection of model to different view and then to image
     m_MVP        = m_K_projectVirtualViewToImage * m_P_moveFromReferenceToVirtualView;
@@ -457,6 +485,8 @@ void GLWidget::paintGL()
 
     glUniformMatrix4fv(m_matMVP_Loc, 1, GL_FALSE, &m_MVP[0][0]);
     glUniformMatrix3fv(m_matK2_inv_Loc, 1, GL_FALSE, &m_Kinv_Cref[0][0]);
+    m_program->setUniformValue("zNear",m_zNear);
+    m_program->setUniformValue("zFar",m_zFar);
 
     m_vertice_indices_Vbo.bind();
 

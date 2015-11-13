@@ -30,6 +30,8 @@ public slots:
 
     // manually connected
     void updateGUIControls(int frameWidth, int frameHeight, int numFrames, int frameRate);
+    void updateZFar();
+    void updateZNear();
 
 signals:
     void nextFrame();

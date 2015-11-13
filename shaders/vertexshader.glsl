@@ -11,10 +11,12 @@ out vec2 UV;
 // Values that stay constant for the whole mesh.
 uniform mat4 MVP;
 uniform mat3 K2_inv;
+uniform float zNear;
+uniform float zFar;
 
 void main(){
-        float m_znear = 15;
-        float m_zfar = 150;
+        float m_znear = zNear;
+        float m_zfar = zFar;
 
         // un/normalize disparity
         float temp1 = 1.0/m_znear - 1.0/m_zfar;

@@ -1,6 +1,9 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+
 #include <QFileDialog>
+#include <QDoubleValidator>
+
 #include <glm/glm.hpp>
 #include "glm/gtx/string_cast.hpp"
 
@@ -12,6 +15,9 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
+    ui->zNearLineEdit->setValidator(new QDoubleValidator(0., 1000., 2));
+    ui->zFarLineEdit->setValidator(new QDoubleValidator(0., 1000., 2));
+
     m_sequences = new TexturePlusDepthSequenceListModel();
 
     // assign models to list views
@@ -21,26 +27,41 @@ MainWindow::MainWindow(QWidget *parent) :
     // connect the objects with signals and slots
 
     // connect playbackController
-    connect(ui->nextFrameButton,SIGNAL(clicked(bool)),m_playbackController,SLOT(nextFrame()));
-    connect(ui->previousFrameButton,SIGNAL(clicked(bool)),m_playbackController,SLOT(previousFrame()));
+    connect(ui->nextFrameButton,SIGNAL(clicked(bool)),
+            m_playbackController,SLOT(nextFrame()));
+    connect(ui->previousFrameButton,SIGNAL(clicked(bool)),
+            m_playbackController,SLOT(previousFrame()));
 
-    connect(m_playbackController,SIGNAL(newSequenceFormat(int,int,int,int)),this,SLOT(updateGUIControls(int,int,int,int)));
-    connect(m_playbackController,SIGNAL(newSequenceFormat(int,int,int,int)),ui->videoWidget,SLOT(updateFormat(int,int)));
-    connect(m_playbackController,SIGNAL(newFrame(QImage,QVector<float>)),ui->videoWidget,SLOT(updateFrame(QImage,QVector<float>)));
-    connect(m_playbackController,SIGNAL(newFrame(QImage,QByteArray)),ui->videoWidget,SLOT(updateFrame(QImage,QByteArray)));
-    connect(m_playbackController,SIGNAL(newFrame(QImage,QVector<uint8_t>)),ui->videoWidget,SLOT(updateFrame(QImage,QVector<uint8_t>)));
-    connect(ui->playbackLocationSlider,SIGNAL(valueChanged(int)),m_playbackController,SLOT(setFrame(int)));
+    connect(m_playbackController,SIGNAL(newSequenceFormat(int,int,int,int)),
+            this,SLOT(updateGUIControls(int,int,int,int)));
+    connect(m_playbackController,SIGNAL(newSequenceFormat(int,int,int,int)),
+            ui->videoWidget,SLOT(updateFormat(int,int)));
+    connect(m_playbackController,SIGNAL(newFrame(QImage,QVector<float>)),
+            ui->videoWidget,SLOT(updateFrame(QImage,QVector<float>)));
+    connect(m_playbackController,SIGNAL(newFrame(QImage,QByteArray)),
+            ui->videoWidget,SLOT(updateFrame(QImage,QByteArray)));
+    connect(m_playbackController,SIGNAL(newFrame(QImage,QVector<uint8_t>)),
+            ui->videoWidget,SLOT(updateFrame(QImage,QVector<uint8_t>)));
+    connect(ui->playbackLocationSlider,SIGNAL(valueChanged(int)),
+            m_playbackController,SLOT(setFrame(int)));
     connect(ui->yuvListView->selectionModel(),SIGNAL(selectionChanged(QItemSelection,QItemSelection)), // yuvListView to controller
             m_playbackController,SLOT(setSequence(QItemSelection)));
 
     // connect video widget
     connect(ui->camListView->selectionModel(),SIGNAL(selectionChanged(QItemSelection,QItemSelection)), // camListView to video widget
             ui->videoWidget, SLOT(updateViewCamera(QItemSelection)));
-    connect(this,SIGNAL(refCamChanged(CameraParameterSet)),ui->videoWidget,SLOT(updateReferenceCamera(CameraParameterSet)));
+    connect(this,SIGNAL(refCamChanged(CameraParameterSet)),
+            ui->videoWidget,SLOT(updateReferenceCamera(CameraParameterSet)));
+    connect(ui->zFarLineEdit,SIGNAL(editingFinished()),
+            this,SLOT(updateZFar()));
+    connect(ui->zNearLineEdit,SIGNAL(editingFinished()),
+            this,SLOT(updateZNear()));
 
     //pure gui interconnections
-    connect(ui->playbackLocationSlider,SIGNAL(valueChanged(int)),ui->frameCounterSpinBox,SLOT(setValue(int)));
-    connect(ui->frameCounterSpinBox,SIGNAL(valueChanged(int)),ui->playbackLocationSlider,SLOT(setValue(int)));
+    connect(ui->playbackLocationSlider,SIGNAL(valueChanged(int)),
+            ui->frameCounterSpinBox,SLOT(setValue(int)));
+    connect(ui->frameCounterSpinBox,SIGNAL(valueChanged(int)),
+            ui->playbackLocationSlider,SLOT(setValue(int)));
 
 }
 
@@ -135,4 +156,16 @@ void MainWindow::updateGUIControls(int frameWidth, int frameHeight, int numFrame
     ui->frameCounterSpinBox->setMaximum(numFrames);
     ui->playbackLocationSlider->setMinimum(1);
     ui->playbackLocationSlider->setMaximum(numFrames);
+}
+
+void MainWindow::updateZFar()
+{
+    float zFar = ui->zFarLineEdit->text().toDouble();
+    ui->videoWidget->updateZFar(zFar);
+}
+
+void MainWindow::updateZNear()
+{
+    float zNear = ui->zNearLineEdit->text().toDouble();
+    ui->videoWidget->updateZNear(zNear);
 }
