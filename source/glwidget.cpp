@@ -166,6 +166,9 @@ void GLWidget::updateZFar(float zFar)
 
 void GLWidget::updateFrame(const QImage &textureData, const QVector<uint8_t> &depthData)
 {
+
+    QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
+
     // Set new texture
 //    QImage texture = QImage(reinterpret_cast<const unsigned char*>(textureData.constData()),m_frameWidth,m_frameHeight,m_textureFormat);
     m_texture_data = std::make_shared<QOpenGLTexture>(textureData,QOpenGLTexture::DontGenerateMipMaps);
@@ -185,6 +188,9 @@ void GLWidget::updateFrame(const QImage &textureData, const QVector<uint8_t> &de
 
 void GLWidget::updateFrame(const QImage &textureData, const QVector<float> &depthData)
 {
+
+    QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
+
     // Set new texture
 //    QImage texture = QImage(reinterpret_cast<const unsigned char*>(textureData.constData()),m_frameWidth,m_frameHeight,m_textureFormat);
     m_texture_data = std::make_shared<QOpenGLTexture>(textureData,QOpenGLTexture::DontGenerateMipMaps);
@@ -206,6 +212,9 @@ void GLWidget::updateFrame(const QImage &textureData, const QByteArray &depthDat
 {
     QElapsedTimer timer;
     timer.start();
+
+    QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
+
     // Set new texture
 //    QImage texture = QImage(reinterpret_cast<const unsigned char*>(textureData.constData()),m_frameWidth,m_frameHeight,m_textureFormat);
     m_texture_data = std::make_shared<QOpenGLTexture>(textureData,QOpenGLTexture::DontGenerateMipMaps);
@@ -237,6 +246,8 @@ void GLWidget::updateFormat(int frameWidth, int frameHeight)
     computeFrameVertices(m_frameWidth, m_frameHeight);
     std::cout << "nr of pixels:" << m_frameWidth * m_frameHeight << std::endl;
     std::cout << "nr of vertices:" << m_videoFrameTriangles_vertices.size() << std::endl;
+
+    QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
 
     m_vertices_Vbo.bind();
     m_vertices_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
@@ -339,6 +350,15 @@ void GLWidget::initializeGL()
     m_frameHeight = 1080;
     m_frameWidth = 1920;
 
+
+    // Create a vertex array object. In OpenGL ES 2.0 and OpenGL 2.x
+    // implementations this is optional and support may not be present
+    // at all. Nonetheless the below code works in all cases and makes
+    // sure there is a VAO when one is needed.
+    m_vao.create();
+    QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
+
+
     m_program = new QOpenGLShaderProgram;
     m_program->addShaderFromSourceFile(QOpenGLShader::Vertex,":shaders/vertexshader.glsl");
     m_program->addShaderFromSourceFile(QOpenGLShader::Fragment,":shaders/fragmentshader.glsl");
@@ -352,12 +372,7 @@ void GLWidget::initializeGL()
     m_texture_Loc = m_program->attributeLocation("vertexUV");
     m_depth_Loc = m_program->attributeLocation("depth");
 
-    // Create a vertex array object. In OpenGL ES 2.0 and OpenGL 2.x
-    // implementations this is optional and support may not be present
-    // at all. Nonetheless the below code works in all cases and makes
-    // sure there is a VAO when one is needed.
-    m_vao.create();
-    QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
+
 
 
     // Create vertex buffer objects
@@ -469,19 +484,21 @@ void GLWidget::paintGL()
 {
     qDebug() << "Function Name: " << Q_FUNC_INFO;
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glEnable(GL_DEPTH_TEST);
-//    glEnable(GL_CULL_FACE);
-//    glFrontFace(GL_CCW);
-
     // nothing loaded yet
     if(m_texture_data == NULL) return;
+
+    QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
+    m_program->bind();
+
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
+    glFrontFace(GL_CCW);
 
     m_texture_data->bind();
     m_program->setUniformValue("textureSampler", 0);
 
-    QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
-    m_program->bind();
+
 
     glUniformMatrix4fv(m_matMVP_Loc, 1, GL_FALSE, &m_MVP[0][0]);
     glUniformMatrix3fv(m_matK2_inv_Loc, 1, GL_FALSE, &m_Kinv_Cref[0][0]);
