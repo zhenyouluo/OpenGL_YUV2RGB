@@ -506,6 +506,9 @@ void GLWidget::paintGL()
     m_program->setUniformValue("zFar",m_zFar);
 
     m_vertice_indices_Vbo.bind();
+    m_vertices_Vbo.bind();
+    m_texture_coordinates_Vbo.bind();
+    m_depth_Vbo.bind();
 
     glDrawElements(
         GL_TRIANGLES,      // mode
