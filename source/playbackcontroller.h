@@ -20,9 +20,7 @@ public slots:
 
 signals:
     void newSequenceFormat(int frameWidth, int frameHeight, int numFrames, int frameRate);
-    void newFrame(const QImage &textureData, const QVector<float> &depthData);
-    void newFrame(const QImage &textureData, const QVector<uint8_t> &depthData);
-    void newFrame(const QImage &textureData, const QByteArray &depthData);
+    void newFrame(const QByteArray &textureData, const QByteArray &depthData);
 
 private:
     void convertYUV2RGB(QByteArray *sourceBuffer, QByteArray *targetBuffer, YUVCPixelFormatType targetPixelFormat, YUVCPixelFormatType srcPixelFormat);
@@ -39,6 +37,7 @@ private:
 
     QByteArray m_conversionBuffer;
     QByteArray m_tmpBufferYUV444;
+    QByteArray m_tmpTextureBufferYUV444;
 
     YUVCColorConversionType m_colorConversionMode;
 

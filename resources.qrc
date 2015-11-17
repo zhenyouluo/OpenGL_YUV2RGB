@@ -4,5 +4,6 @@
         <file>shaders/fragmentshader.glsl</file>
         <file>icons/next.png</file>
         <file>icons/previous.png</file>
+        <file>shaders/fragmentYUV2RGBshader.glsl</file>
     </qresource>
 </RCC>

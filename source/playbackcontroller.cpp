@@ -70,26 +70,28 @@ void PlaybackController::setFrame(int frameIdx)
     if (m_yuvTextureSource->pixelFormat() != YUVC_24RGBPixelFormat)
     {
         // read YUV444 frame from file - 16 bit LE words
-        m_yuvTextureSource->getOneFrame(&m_tmpBufferYUV444, frameIdx);
+        m_yuvTextureSource->getOneFrame(&m_tmpTextureBufferYUV444, frameIdx);
+
 
         // convert from YUV444 (planar) - 16 bit words to RGB888 (interleaved) color format (in place)
-        convertYUV2RGB(&m_tmpBufferYUV444, &m_conversionBuffer, YUVC_24RGBPixelFormat, m_yuvTextureSource->pixelFormat());
+//        convertYUV2RGB(&m_tmpBufferYUV444, &m_conversionBuffer, YUVC_24RGBPixelFormat, m_yuvTextureSource->pixelFormat());
     }
     else
     {
         // read RGB24 frame from file
-        m_yuvTextureSource->getOneFrame(&m_conversionBuffer, frameIdx);
+        m_yuvTextureSource->getOneFrame(&m_tmpTextureBufferYUV444, frameIdx);
     }
 
     // need to copy since buffer is modified again
-    QImage test= QImage((unsigned char*)m_conversionBuffer.data(),m_frameWidth,m_frameHeight,QImage::Format_RGB888).copy();
+//    QImage test= QImage((unsigned char*)m_conversionBuffer.data(),m_frameWidth,m_frameHeight,QImage::Format_RGB888).copy();
+//    QImage test= QImage((unsigned char*)m_tmpBufferYUV444.data(),m_frameWidth,m_frameHeight,QImage::Format_RGB888).copy();
 
     // depthmap data, using luma as depth, ignoring chroma
     m_yuvDepthSource->getOneDepthFrame(&m_tmpBufferYUV444, frameIdx);
 
     qDebug() << "Reading and converting texture and depth took" << timer.elapsed() << "milliseconds";
 
-    emit newFrame( test, m_tmpBufferYUV444);
+    emit newFrame( m_tmpTextureBufferYUV444, m_tmpBufferYUV444);
 
 }
 

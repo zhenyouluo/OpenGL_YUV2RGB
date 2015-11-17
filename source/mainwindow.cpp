@@ -36,12 +36,8 @@ MainWindow::MainWindow(QWidget *parent) :
             this,SLOT(updateGUIControls(int,int,int,int)));
     connect(m_playbackController,SIGNAL(newSequenceFormat(int,int,int,int)),
             ui->videoWidget,SLOT(updateFormat(int,int)));
-    connect(m_playbackController,SIGNAL(newFrame(QImage,QVector<float>)),
-            ui->videoWidget,SLOT(updateFrame(QImage,QVector<float>)));
-    connect(m_playbackController,SIGNAL(newFrame(QImage,QByteArray)),
-            ui->videoWidget,SLOT(updateFrame(QImage,QByteArray)));
-    connect(m_playbackController,SIGNAL(newFrame(QImage,QVector<uint8_t>)),
-            ui->videoWidget,SLOT(updateFrame(QImage,QVector<uint8_t>)));
+    connect(m_playbackController,SIGNAL(newFrame(QByteArray,QByteArray)),
+            ui->videoWidget,SLOT(updateFrame(QByteArray,QByteArray)));
     connect(ui->playbackLocationSlider,SIGNAL(valueChanged(int)),
             m_playbackController,SLOT(setFrame(int)));
     connect(ui->yuvListView->selectionModel(),SIGNAL(selectionChanged(QItemSelection,QItemSelection)), // yuvListView to controller

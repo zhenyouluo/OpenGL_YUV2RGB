@@ -61,7 +61,9 @@ GLWidget::GLWidget(QWidget *parent)
       m_frameWidth(1),
       m_frameHeight(1),
       m_vertice_indices_Vbo(QOpenGLBuffer::IndexBuffer),
-      m_texture_data(0),
+      m_texture_red_data(0),
+      m_texture_green_data(0),
+      m_texture_blue_data(0),
       m_program(0)
 {
     m_core = QCoreApplication::arguments().contains(QStringLiteral("--coreprofile"));
@@ -164,71 +166,65 @@ void GLWidget::updateZFar(float zFar)
     update();
 }
 
-void GLWidget::updateFrame(const QImage &textureData, const QVector<uint8_t> &depthData)
-{
-
-    QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
-
-    // Set new texture
-//    QImage texture = QImage(reinterpret_cast<const unsigned char*>(textureData.constData()),m_frameWidth,m_frameHeight,m_textureFormat);
-    m_texture_data = std::make_shared<QOpenGLTexture>(textureData,QOpenGLTexture::DontGenerateMipMaps);
-    // Set nearest filtering mode for texture minification
-    m_texture_data->setMinificationFilter(QOpenGLTexture::Nearest);
-    // Set bilinear filtering mode for texture magnification
-    m_texture_data->setMagnificationFilter(QOpenGLTexture::Linear);
-    // Wrap texture coordinates by repeating
-    m_texture_data->setWrapMode(QOpenGLTexture::Repeat);
-
-    // set new depth data
-    m_depth_Vbo.bind();
-    m_depth_Vbo.allocate(depthData.constData(), depthData.count() * sizeof(GL_UNSIGNED_BYTE));
-
-    update();
-}
-
-void GLWidget::updateFrame(const QImage &textureData, const QVector<float> &depthData)
-{
-
-    QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
-
-    // Set new texture
-//    QImage texture = QImage(reinterpret_cast<const unsigned char*>(textureData.constData()),m_frameWidth,m_frameHeight,m_textureFormat);
-    m_texture_data = std::make_shared<QOpenGLTexture>(textureData,QOpenGLTexture::DontGenerateMipMaps);
-    // Set nearest filtering mode for texture minification
-    m_texture_data->setMinificationFilter(QOpenGLTexture::Nearest);
-    // Set bilinear filtering mode for texture magnification
-    m_texture_data->setMagnificationFilter(QOpenGLTexture::Linear);
-    // Wrap texture coordinates by repeating
-    m_texture_data->setWrapMode(QOpenGLTexture::Repeat);
-
-    // set new depth data
-    m_depth_Vbo.bind();
-    m_depth_Vbo.allocate(depthData.constData(), depthData.count() * sizeof(GLfloat));
-
-    update();
-}
-
-void GLWidget::updateFrame(const QImage &textureData, const QByteArray &depthData)
+void GLWidget::updateFrame(const QByteArray &textureData, const QByteArray &depthData)
 {
     QElapsedTimer timer;
     timer.start();
 
+    QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
+
     QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
 
-    // Set new texture
-//    QImage texture = QImage(reinterpret_cast<const unsigned char*>(textureData.constData()),m_frameWidth,m_frameHeight,m_textureFormat);
-    m_texture_data = std::make_shared<QOpenGLTexture>(textureData,QOpenGLTexture::DontGenerateMipMaps);
-    // Set nearest filtering mode for texture minification
-    m_texture_data->setMinificationFilter(QOpenGLTexture::Nearest);
-    // Set bilinear filtering mode for texture magnification
-    m_texture_data->setMagnificationFilter(QOpenGLTexture::Linear);
+    const int componentWidth = m_frameWidth;
+    const int componentHeight = m_frameHeight;
+    const int componentLength = componentWidth*componentHeight; // number of bytes per luma frames
+    const unsigned char *srcY = (unsigned char*)textureData.data();
+    const unsigned char *srcU = srcY + componentLength;
+    const unsigned char *srcV = srcY + 2*componentLength;
+
+    // transmitting the YUV data as three different textures
+    // Y on unit 0
+    m_texture_red_data = std::make_shared<QOpenGLTexture>(QOpenGLTexture::Target2D);
+    m_texture_red_data->create();
+    m_texture_red_data->setSize(m_frameWidth,m_frameHeight);
+    m_texture_red_data->setFormat(QOpenGLTexture::R8_UNorm);
+    m_texture_red_data->allocateStorage(QOpenGLTexture::Red,QOpenGLTexture::UInt8);
+    m_texture_red_data->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, srcY);
+    // Set filtering modes for texture minification and  magnification
+    m_texture_red_data->setMinificationFilter(QOpenGLTexture::Nearest);
+    m_texture_red_data->setMagnificationFilter(QOpenGLTexture::Linear);
     // Wrap texture coordinates by repeating
-    m_texture_data->setWrapMode(QOpenGLTexture::Repeat);
+    m_texture_red_data->setWrapMode(QOpenGLTexture::Repeat);
+
+    // U on unit 1
+    m_texture_green_data = std::make_shared<QOpenGLTexture>(QOpenGLTexture::Target2D);
+    m_texture_green_data->create();
+    m_texture_green_data->setSize(m_frameWidth,m_frameHeight);
+    m_texture_green_data->setFormat(QOpenGLTexture::R8_UNorm);
+    m_texture_green_data->allocateStorage(QOpenGLTexture::Red,QOpenGLTexture::UInt8);
+    m_texture_green_data->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, srcU);
+    // Set filtering modes for texture minification and  magnification
+    m_texture_green_data->setMinificationFilter(QOpenGLTexture::Nearest);
+    m_texture_green_data->setMagnificationFilter(QOpenGLTexture::Linear);
+    // Wrap texture coordinates by repeating
+    m_texture_green_data->setWrapMode(QOpenGLTexture::Repeat);
+
+    // V on unit 2
+    m_texture_blue_data = std::make_shared<QOpenGLTexture>(QOpenGLTexture::Target2D);
+    m_texture_blue_data->create();
+    m_texture_blue_data->setSize(m_frameWidth,m_frameHeight);
+    m_texture_blue_data->setFormat(QOpenGLTexture::R8_UNorm);
+    m_texture_blue_data->allocateStorage(QOpenGLTexture::Red,QOpenGLTexture::UInt8);
+    m_texture_blue_data->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, srcV);
+    // Set filtering modes for texture minification and  magnification
+    m_texture_blue_data->setMinificationFilter(QOpenGLTexture::Nearest);
+    m_texture_blue_data->setMagnificationFilter(QOpenGLTexture::Linear);
+    // Wrap texture coordinates by repeating
+    m_texture_blue_data->setWrapMode(QOpenGLTexture::Repeat);
 
     // set new depth data
     m_depth_Vbo.bind();
     m_depth_Vbo.allocate(depthData.constData(), depthData.count() * sizeof(GLbyte));
-//    m_depth_Vbo.allocate(depthDataVec.constData(), depthDataVec.count() * sizeof(GLfloat));
 
     qDebug() << "Moving data to graphics card took" << timer.elapsed() << "milliseconds";
 
@@ -361,19 +357,20 @@ void GLWidget::initializeGL()
 
     m_program = new QOpenGLShaderProgram;
     m_program->addShaderFromSourceFile(QOpenGLShader::Vertex,":shaders/vertexshader.glsl");
-    m_program->addShaderFromSourceFile(QOpenGLShader::Fragment,":shaders/fragmentshader.glsl");
+    m_program->addShaderFromSourceFile(QOpenGLShader::Fragment,":shaders/fragmentYUV2RGBshader.glsl");
     m_program->link();
     m_program->bind();
 
     m_matMVP_Loc = m_program->uniformLocation("MVP");
     m_matK2_inv_Loc = m_program->uniformLocation("K2_inv");
 
+    m_program->setUniformValue("textureSamplerRed", 0);
+    m_program->setUniformValue("textureSamplerGreen", 1);
+    m_program->setUniformValue("textureSamplerBlue", 2);
+
     m_vertices_Loc = m_program->attributeLocation("vertexPosition_modelspace");
     m_texture_Loc = m_program->attributeLocation("vertexUV");
     m_depth_Loc = m_program->attributeLocation("depth");
-
-
-
 
     // Create vertex buffer objects
     m_vertices_Vbo.create();
@@ -483,9 +480,12 @@ void GLWidget::setupMatrices()
 void GLWidget::paintGL()
 {
     qDebug() << "Function Name: " << Q_FUNC_INFO;
+    QElapsedTimer timer;
+    timer.start();
 
     // nothing loaded yet
-    if(m_texture_data == NULL) return;
+    if(m_texture_red_data == NULL || m_texture_green_data == NULL || m_texture_blue_data == NULL) return;
+//    if(m_texture_red_data == NULL ) return;
 
     QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
     m_program->bind();
@@ -495,8 +495,13 @@ void GLWidget::paintGL()
     glEnable(GL_CULL_FACE);
     glFrontFace(GL_CCW);
 
-    m_texture_data->bind();
-    m_program->setUniformValue("textureSampler", 0);
+    m_texture_red_data->bind(0);
+    m_texture_green_data->bind(1);
+    m_texture_blue_data->bind(2);
+
+//    m_program->setUniformValue("textureSamplerRed", 0);
+//    m_program->setUniformValue("textureSamplerGreen", 1);
+//    m_program->setUniformValue("textureSamplerBlue", 2);
 
 
 
@@ -518,6 +523,8 @@ void GLWidget::paintGL()
     );
 
     m_program->release();
+
+    qDebug() << "Painting took" << timer.elapsed() << "milliseconds";
 
 }
 

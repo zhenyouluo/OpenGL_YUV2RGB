@@ -78,9 +78,7 @@ public:
 
 public slots:
     void cleanup();
-    void updateFrame(const QImage &textureData, const QVector<float> &depthData); // display a new frame
-    void updateFrame(const QImage &textureData, const QByteArray &depthData); // display a new frame
-    void updateFrame(const QImage &textureData, const QVector<uint8_t> &depthData);
+    void updateFrame(const QByteArray &textureData, const QByteArray &depthData); // display a new frame
     void updateFormat(int frameWidth, int frameHeight); // change frame format (width, height, ...)
     void updateReferenceCamera(CameraParameterSet refCam);
     void updateViewCamera(QItemSelection newCamera);
@@ -114,7 +112,9 @@ private:
     QOpenGLBuffer m_texture_coordinates_Vbo;
     QOpenGLBuffer m_depth_Vbo;
 
-    std::shared_ptr<QOpenGLTexture> m_texture_data;
+    std::shared_ptr<QOpenGLTexture> m_texture_red_data;
+    std::shared_ptr<QOpenGLTexture> m_texture_green_data;
+    std::shared_ptr<QOpenGLTexture> m_texture_blue_data;
     QImage::Format m_textureFormat;
     QVector<GLfloat> m_vertices_data;
     QVector<GLfloat> m_depth_data;
