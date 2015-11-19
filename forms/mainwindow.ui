@@ -112,7 +112,7 @@
        <enum>QFrame::Raised</enum>
       </property>
       <layout class="QGridLayout" name="gridLayout_3">
-       <item row="0" column="4">
+       <item row="0" column="5">
         <widget class="QLabel" name="frameRateLabel">
          <property name="text">
           <string>0</string>
@@ -130,7 +130,7 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="2">
+       <item row="0" column="3">
         <widget class="QSlider" name="playbackLocationSlider">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -146,7 +146,7 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="1">
+       <item row="0" column="2">
         <widget class="QPushButton" name="nextFrameButton">
          <property name="text">
           <string/>
@@ -157,13 +157,24 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="3">
+       <item row="0" column="4">
         <widget class="QSpinBox" name="frameCounterSpinBox"/>
        </item>
-       <item row="0" column="5">
+       <item row="0" column="6">
         <widget class="QLabel" name="label_2">
          <property name="text">
           <string>fps</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QPushButton" name="playButton">
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="../resources.qrc">
+           <normaloff>:/icons/play.png</normaloff>:/icons/play.png</iconset>
          </property>
         </widget>
        </item>

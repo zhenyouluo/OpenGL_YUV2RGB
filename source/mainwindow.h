@@ -27,6 +27,8 @@ public slots:
 
     // manually connected
     void updateGUIControls(int frameWidth, int frameHeight, int numFrames, int frameRate);
+    void updatePosition(int frameIdx);
+    void updateFrameRate(int msSinceLastPaint);
 
 signals:
     void nextFrame();

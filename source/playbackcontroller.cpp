@@ -25,7 +25,7 @@
 static unsigned char clp_buf[384+256+384];
 static unsigned char *clip_buf = clp_buf+384;
 
-PlaybackController::PlaybackController()
+PlaybackController::PlaybackController() : m_isPlaying(false)
 {
     m_colorConversionMode = YUVC709ColorConversionType;
 
@@ -39,25 +39,28 @@ PlaybackController::PlaybackController()
 }
 
 void PlaybackController::nextFrame()
-{    
-    qDebug() << "Function Name: " << Q_FUNC_INFO;
-
-    m_currentFrame++;
+{
     // ensure current frame has valid index
-    if( (m_currentFrame < 1) || (m_currentFrame > m_numFrames)) m_currentFrame = m_numFrames;
+    if( (m_currentFrame >= 1) && (m_currentFrame < m_numFrames))
+    {
+        m_currentFrame++;
+        setFrame(m_currentFrame);
+        emit positionHasChanged(m_currentFrame);
+    }
 
-    setFrame(m_currentFrame);
 }
 
 void PlaybackController::previousFrame()
-{    
-    qDebug() << "Function Name: " << Q_FUNC_INFO;
-    m_currentFrame--;
+{
     // ensure current frame has valid index
-    if( (m_currentFrame < 1) || (m_currentFrame > m_numFrames)) m_currentFrame = 1;
-
-    setFrame(m_currentFrame);
+    if( (m_currentFrame > 1) && (m_currentFrame <= m_numFrames))
+    {
+        m_currentFrame--;
+        setFrame(m_currentFrame);
+        emit positionHasChanged(m_currentFrame);
+    }
 }
+
 
 void PlaybackController::setFrame(int frameIdx)
 {        
@@ -163,6 +166,27 @@ void PlaybackController::setSequence(QItemSelection sequence)
 
 }
 
+void PlaybackController::playOrPause()
+{
+      if(m_isPlaying)
+    // stop playback
+    {
+        if(m_playBackTimer != NULL)
+        {
+            m_playBackTimer->stop();
+            disconnect(m_playBackTimer.get(),SIGNAL(timeout()),this,SLOT(nextFrame()));
+        }
+    }
+    else
+    // start playback
+    {
+        m_playBackTimer = std::make_shared<QTimer>(this);
+        connect(m_playBackTimer.get(),SIGNAL(timeout()),this,SLOT(nextFrame()));
+        m_playBackTimer->start(50);
+
+    }
+
+}
 
 
 void PlaybackController::convertYUV2RGB(QByteArray *sourceBuffer, QByteArray *targetBuffer, YUVCPixelFormatType targetPixelFormat, YUVCPixelFormatType srcPixelFormat)

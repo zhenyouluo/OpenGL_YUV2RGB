@@ -36,7 +36,14 @@ MainWindow::MainWindow(QWidget *parent) :
             m_playbackController,SLOT(setFrame(int)));
     connect(ui->yuvListView->selectionModel(),SIGNAL(selectionChanged(QItemSelection,QItemSelection)), // yuvListView to controller
             m_playbackController,SLOT(setSequence(QItemSelection)));
+    connect(ui->playButton,SIGNAL(clicked(bool)),
+            m_playbackController,SLOT(playOrPause()));
+    connect(m_playbackController,SIGNAL(positionHasChanged(int)),
+            this,SLOT(updatePosition(int)));
 
+    // connect video widget
+    connect(ui->videoWidget,SIGNAL(msSinceLastPaintChanged(int)),
+            this,SLOT(updateFrameRate(int)));
 
     //pure gui interconnections
     connect(ui->playbackLocationSlider,SIGNAL(valueChanged(int)),
@@ -100,3 +107,15 @@ void MainWindow::updateGUIControls(int frameWidth, int frameHeight, int numFrame
     ui->playbackLocationSlider->setMaximum(numFrames);
 }
 
+void MainWindow::updatePosition(int frameIdx)
+{
+    ui->playbackLocationSlider->setValue(frameIdx);
+    ui->frameCounterSpinBox->setValue(frameIdx);
+}
+
+void MainWindow::updateFrameRate(int msSinceLastPaint)
+{
+    double frameRate = 1000.0/msSinceLastPaint;
+    ui->frameRateLabel->setText(QString::number(frameRate,'f',1));
+
+}

@@ -54,6 +54,7 @@
 #include <memory>
 #include <QByteArray>
 #include <QVector>
+#include <QElapsedTimer>
 
 // Include GLM
 #include <glm/glm.hpp>
@@ -80,7 +81,7 @@ public slots:
     void updateFormat(int frameWidth, int frameHeight); // change frame format (width, height, ...)
 
 signals:
-
+    void msSinceLastPaintChanged(int ms);
 
 protected:
     void initializeGL() Q_DECL_OVERRIDE;
@@ -125,6 +126,8 @@ private:
     std::vector<float> m_videoFrameTriangles_texture_uv;
 
     bool m_transparent;
+
+    QElapsedTimer measureFPSTimer;
 
 };
 

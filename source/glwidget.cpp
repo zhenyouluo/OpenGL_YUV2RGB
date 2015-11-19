@@ -76,6 +76,8 @@ GLWidget::GLWidget(QWidget *parent)
     p.setHeightForWidth(true);
     setSizePolicy(p);
 
+    connect(this,SIGNAL(frameSwapped()),this,SLOT(update()));
+
 }
 
 GLWidget::~GLWidget()
@@ -398,7 +400,8 @@ void GLWidget::paintGL()
     m_program->release();
 
 //    qDebug() << "Painting took" << timer.elapsed() << "milliseconds";
-
+    int msSinceLastPaint = measureFPSTimer.restart();
+    emit msSinceLastPaintChanged(msSinceLastPaint);
 }
 
 
