@@ -91,7 +91,7 @@ void PlaybackController::setFrame(int frameIdx)
 
     qDebug() << "Reading and converting texture and depth took" << timer.elapsed() << "milliseconds";
 
-    emit newFrame( m_tmpTextureBufferYUV444, m_tmpBufferYUV444);
+    emit newFrame( m_tmpTextureBufferYUV444);
 
 }
 

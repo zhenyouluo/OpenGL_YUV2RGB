@@ -59,8 +59,6 @@
 #include <glm/glm.hpp>
 #include <QItemSelection>
 
-#include "cameraparameterset.h"
-
 QT_FORWARD_DECLARE_CLASS(QOpenGLShaderProgram)
 
 class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions
@@ -78,12 +76,8 @@ public:
 
 public slots:
     void cleanup();
-    void updateFrame(const QByteArray &textureData, const QByteArray &depthData); // display a new frame
+    void updateFrame(const QByteArray &textureData); // display a new frame
     void updateFormat(int frameWidth, int frameHeight); // change frame format (width, height, ...)
-    void updateReferenceCamera(CameraParameterSet refCam);
-    void updateViewCamera(QItemSelection newCamera);
-    void updateZNear(float zNear);
-    void updateZFar(float zFar);
 
 signals:
 
@@ -93,9 +87,6 @@ protected:
     void paintGL() Q_DECL_OVERRIDE;
 
 private:
-    void computeFrameVertices(int frameWidth, int frameHeight);
-    void computeFrameMesh(int frameWidth, int frameHeight);
-    void computeTextureCoordinates(int frameWidth, int frameHeight);
     void setupVertexAttribs();
     void setupMatrices();
     glm::mat4 getProjectionFromCamCalibration(glm::mat3 &calibrationMatrix, float clipFar, float clipNear);
@@ -110,40 +101,22 @@ private:
     QOpenGLBuffer m_vertices_Vbo;
     QOpenGLBuffer m_vertice_indices_Vbo;
     QOpenGLBuffer m_texture_coordinates_Vbo;
-    QOpenGLBuffer m_depth_Vbo;
 
     std::shared_ptr<QOpenGLTexture> m_texture_red_data;
     std::shared_ptr<QOpenGLTexture> m_texture_green_data;
     std::shared_ptr<QOpenGLTexture> m_texture_blue_data;
     QImage::Format m_textureFormat;
     QVector<GLfloat> m_vertices_data;
-    QVector<GLfloat> m_depth_data;
 
     QOpenGLShaderProgram *m_program;
 
     int m_matMVP_Loc;
-    int m_matK2_inv_Loc;
 
     // handles for texture, vertices and depth
     int m_vertices_Loc;
     int m_texture_Loc;
-    int m_depth_Loc;
 
-    glm::mat3 m_Kinv_Cref;    
     glm::mat4 m_MVP;
-
-    glm::mat4 m_P_moveFromReferenceToVirtualView;
-    glm::mat4 m_K_projectVirtualViewToImage;
-
-    glm::mat3 m_K_ref;
-    glm::mat3 m_R_ref;
-    glm::vec3 m_t_ref;
-    glm::mat3 m_K_view;
-    glm::mat3 m_R_view;
-    glm::vec3 m_t_view;
-
-    float m_zNear;
-    float m_zFar;
 
     std::vector<glm::vec3> m_videoFrameTriangles_vertices;
     // each vector (of 3 unsigned int) holds the indices for one triangle in the video frame

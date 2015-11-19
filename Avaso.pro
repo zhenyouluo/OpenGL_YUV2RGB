@@ -14,18 +14,13 @@ TARGET = Avaso
 TEMPLATE = app
 
 
-INCLUDEPATH += /usr/include/ImageMagick-6/ \
-        source
+INCLUDEPATH += source
 
-LIBS += \
-    /usr/lib/libMagickCore-6.Q16HDRI.so \
-    /usr/lib/libMagick++-6.Q16HDRI.so
-#-lMagick++
+LIBS +=
 
 HEADERS  += \
     source/mainwindow.h \
-    source/glwidget.h \
-    source/cameraparameterset.h \
+    source/glwidget.h \    
     source/textureplusdepthsequencelistmodel.h \
     source/playbackcontroller.h \
     source/typedef.h \
@@ -36,8 +31,7 @@ HEADERS  += \
 SOURCES += \
     source/main.cpp \
     source/mainwindow.cpp \
-    source/glwidget.cpp \
-    source/cameraparameterset.cpp \
+    source/glwidget.cpp \    
     source/textureplusdepthsequencelistmodel.cpp \
     source/playbackcontroller.cpp \
     source/common.cpp \
