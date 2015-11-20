@@ -44,8 +44,7 @@ void PlaybackController::nextFrame()
     if( (m_currentFrame >= 1) && (m_currentFrame < m_numFrames))
     {
         m_currentFrame++;
-        setFrame(m_currentFrame);
-        emit positionHasChanged(m_currentFrame);
+        setFrame();
     }
 
 }
@@ -56,8 +55,7 @@ void PlaybackController::previousFrame()
     if( (m_currentFrame > 1) && (m_currentFrame <= m_numFrames))
     {
         m_currentFrame--;
-        setFrame(m_currentFrame);
-        emit positionHasChanged(m_currentFrame);
+        setFrame();
     }
 }
 
@@ -66,37 +64,51 @@ void PlaybackController::setFrame(int frameIdx)
 {        
     qDebug() << "Function Name: " << Q_FUNC_INFO;
 
+    if(m_currentFrame == frameIdx)
+      return;
 
-    QElapsedTimer timer;
-    timer.start();
+    m_currentFrame = frameIdx;
+    setFrame();
+}
 
-    if (m_yuvTextureSource->pixelFormat() != YUVC_24RGBPixelFormat)
-    {
-        // read YUV444 frame from file - 16 bit LE words
-        m_yuvTextureSource->getOneFrame(&m_tmpTextureBufferYUV444, frameIdx);
+void PlaybackController::setFrame()
+{
+  qDebug() << "Function Name: " << Q_FUNC_INFO;
+
+  QElapsedTimer timer;
+  timer.start();
+
+  if (m_yuvTextureSource->pixelFormat() != YUVC_24RGBPixelFormat)
+  {
+      // read YUV444 frame from file - 16 bit LE words
+      m_yuvTextureSource->getOneFrame(&m_tmpTextureBufferYUV444, m_currentFrame);
 
 
-        // convert from YUV444 (planar) - 16 bit words to RGB888 (interleaved) color format (in place)
+      // convert from YUV444 (planar) - 16 bit words to RGB888 (interleaved) color format (in place)
 //        convertYUV2RGB(&m_tmpBufferYUV444, &m_conversionBuffer, YUVC_24RGBPixelFormat, m_yuvTextureSource->pixelFormat());
-    }
-    else
-    {
-        // read RGB24 frame from file
-        m_yuvTextureSource->getOneFrame(&m_tmpTextureBufferYUV444, frameIdx);
-    }
+  }
+  else
+  {
+      // read RGB24 frame from file
+      m_yuvTextureSource->getOneFrame(&m_tmpTextureBufferYUV444, m_currentFrame);
+  }
 
-    // need to copy since buffer is modified again
+  // need to copy since buffer is modified again
 //    QImage test= QImage((unsigned char*)m_conversionBuffer.data(),m_frameWidth,m_frameHeight,QImage::Format_RGB888).copy();
 //    QImage test= QImage((unsigned char*)m_tmpBufferYUV444.data(),m_frameWidth,m_frameHeight,QImage::Format_RGB888).copy();
 
-    // depthmap data, using luma as depth, ignoring chroma
-    m_yuvDepthSource->getOneDepthFrame(&m_tmpBufferYUV444, frameIdx);
+  // depthmap data, using luma as depth, ignoring chroma
+  m_yuvDepthSource->getOneDepthFrame(&m_tmpBufferYUV444, m_currentFrame);
 
-    qDebug() << "Reading and converting texture and depth took" << timer.elapsed() << "milliseconds";
+  qDebug() << "Reading and converting texture and depth took" << timer.elapsed() << "milliseconds";
 
-    emit newFrame( m_tmpTextureBufferYUV444);
+  emit newFrame( m_tmpTextureBufferYUV444);
+  emit positionHasChanged(m_currentFrame);
 
+  int msSinceLastSentFrame = m_measureFPSSentTimer.restart();
+  emit msSinceLastSentFrameChanged(msSinceLastSentFrame);
 }
+
 
 void PlaybackController::setSequence(QItemSelection sequence)
 {
@@ -176,17 +188,19 @@ void PlaybackController::playOrPause()
             m_playBackTimer->stop();
             disconnect(m_playBackTimer.get(),SIGNAL(timeout()),this,SLOT(nextFrame()));
         }
+        m_isPlaying = false;
     }
     else
     // start playback
     {
         m_playBackTimer = std::make_shared<QTimer>(this);
         connect(m_playBackTimer.get(),SIGNAL(timeout()),this,SLOT(nextFrame()));
-        m_playBackTimer->start(50);
-
+        m_playBackTimer->start(1000/50);   // 1000 / fps
+        m_isPlaying = true;
     }
 
 }
+
 
 
 void PlaybackController::convertYUV2RGB(QByteArray *sourceBuffer, QByteArray *targetBuffer, YUVCPixelFormatType targetPixelFormat, YUVCPixelFormatType srcPixelFormat)

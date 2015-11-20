@@ -22,13 +22,14 @@ public:
 public slots:
     // automatically connected by naming scheme
     void on_loadTextureAndDepthButton_clicked();
-    void on_nextFrameButton_clicked();
-    void on_previousFrameButton_clicked();
+//    void on_nextFrameButton_clicked();
+//    void on_previousFrameButton_clicked();
 
     // manually connected
     void updateGUIControls(int frameWidth, int frameHeight, int numFrames, int frameRate);
     void updatePosition(int frameIdx);
     void updateFrameRate(int msSinceLastPaint);
+    void updateFramesSentRate(int msSinceLastSentFrame);
 
 signals:
     void nextFrame();

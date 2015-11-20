@@ -21,35 +21,43 @@ MainWindow::MainWindow(QWidget *parent) :
     //
 
     // connect playbackController
+    // gui to controller
     connect(ui->nextFrameButton,SIGNAL(clicked(bool)),
             m_playbackController,SLOT(nextFrame()));
     connect(ui->previousFrameButton,SIGNAL(clicked(bool)),
             m_playbackController,SLOT(previousFrame()));
+    connect(ui->playbackLocationSlider,SIGNAL(valueChanged(int)),
+            m_playbackController,SLOT(setFrame(int)));
+    connect(ui->frameCounterSpinBox,SIGNAL(valueChanged(int)),
+            m_playbackController,SLOT(setFrame(int)));
 
+    connect(ui->yuvListView->selectionModel(),SIGNAL(selectionChanged(QItemSelection,QItemSelection)), // yuvListView to controller
+            m_playbackController,SLOT(setSequence(QItemSelection)));
+    connect(ui->playButton,SIGNAL(clicked(bool)),
+            m_playbackController,SLOT(playOrPause()));
+    // controller to gui
     connect(m_playbackController,SIGNAL(newSequenceFormat(int,int,int,int)),
             this,SLOT(updateGUIControls(int,int,int,int)));
     connect(m_playbackController,SIGNAL(newSequenceFormat(int,int,int,int)),
             ui->videoWidget,SLOT(updateFormat(int,int)));
     connect(m_playbackController,SIGNAL(newFrame(QByteArray)),
             ui->videoWidget,SLOT(updateFrame(QByteArray)));
-    connect(ui->playbackLocationSlider,SIGNAL(valueChanged(int)),
-            m_playbackController,SLOT(setFrame(int)));
-    connect(ui->yuvListView->selectionModel(),SIGNAL(selectionChanged(QItemSelection,QItemSelection)), // yuvListView to controller
-            m_playbackController,SLOT(setSequence(QItemSelection)));
-    connect(ui->playButton,SIGNAL(clicked(bool)),
-            m_playbackController,SLOT(playOrPause()));
+
     connect(m_playbackController,SIGNAL(positionHasChanged(int)),
             this,SLOT(updatePosition(int)));
+
+    connect(m_playbackController,SIGNAL(msSinceLastSentFrameChanged(int)),
+            this,SLOT(updateFramesSentRate(int)));
 
     // connect video widget
     connect(ui->videoWidget,SIGNAL(msSinceLastPaintChanged(int)),
             this,SLOT(updateFrameRate(int)));
 
     //pure gui interconnections
-    connect(ui->playbackLocationSlider,SIGNAL(valueChanged(int)),
-            ui->frameCounterSpinBox,SLOT(setValue(int)));
-    connect(ui->frameCounterSpinBox,SIGNAL(valueChanged(int)),
-            ui->playbackLocationSlider,SLOT(setValue(int)));
+//    connect(ui->playbackLocationSlider,SIGNAL(valueChanged(int)),
+//            ui->frameCounterSpinBox,SLOT(setValue(int)));
+//    connect(ui->frameCounterSpinBox,SIGNAL(valueChanged(int)),
+//            ui->playbackLocationSlider,SLOT(setValue(int)));
 
 }
 
@@ -80,22 +88,22 @@ void MainWindow::on_loadTextureAndDepthButton_clicked()
 
 }
 
-void MainWindow::on_nextFrameButton_clicked()
-{
-    qDebug() << "Function Name: " << Q_FUNC_INFO;
-//    emit nextFrame();
-    int frameIdx = ui->playbackLocationSlider->value() + 1;
-    ui->playbackLocationSlider->setValue(frameIdx);
-    ui->frameCounterSpinBox->setValue(frameIdx);
-}
+//void MainWindow::on_nextFrameButton_clicked()
+//{
+//    qDebug() << "Function Name: " << Q_FUNC_INFO;
+////    emit nextFrame();
+//    int frameIdx = ui->playbackLocationSlider->value() + 1;
+//    ui->playbackLocationSlider->setValue(frameIdx);
+//    ui->frameCounterSpinBox->setValue(frameIdx);
+//}
 
-void MainWindow::on_previousFrameButton_clicked()
-{
-    qDebug() << "Function Name: " << Q_FUNC_INFO;
-    int frameIdx = ui->playbackLocationSlider->value() - 1;
-    ui->playbackLocationSlider->setValue(frameIdx);
-    ui->frameCounterSpinBox->setValue(frameIdx);
-}
+//void MainWindow::on_previousFrameButton_clicked()
+//{
+//    qDebug() << "Function Name: " << Q_FUNC_INFO;
+//    int frameIdx = ui->playbackLocationSlider->value() - 1;
+//    ui->playbackLocationSlider->setValue(frameIdx);
+//    ui->frameCounterSpinBox->setValue(frameIdx);
+//}
 
 void MainWindow::updateGUIControls(int frameWidth, int frameHeight, int numFrames, int frameRate)
 {
@@ -117,5 +125,12 @@ void MainWindow::updateFrameRate(int msSinceLastPaint)
 {
     double frameRate = 1000.0/msSinceLastPaint;
     ui->frameRateLabel->setText(QString::number(frameRate,'f',1));
+
+}
+
+void MainWindow::updateFramesSentRate(int msSinceLastSentFrame)
+{
+  double frameRate = 1000.0/msSinceLastSentFrame;
+  ui->framesSentRateLabel->setText(QString::number(frameRate,'f',1));
 
 }

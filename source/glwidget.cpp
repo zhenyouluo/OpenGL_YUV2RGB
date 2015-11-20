@@ -76,7 +76,9 @@ GLWidget::GLWidget(QWidget *parent)
     p.setHeightForWidth(true);
     setSizePolicy(p);
 
-    connect(this,SIGNAL(frameSwapped()),this,SLOT(update()));
+
+//  uncommenting this enables update on the vertical refresh of the monitor. however it somehow interferes with the file dialog
+//    connect(this,SIGNAL(frameSwapped()),this,SLOT(update()));
 
 }
 
@@ -400,7 +402,7 @@ void GLWidget::paintGL()
     m_program->release();
 
 //    qDebug() << "Painting took" << timer.elapsed() << "milliseconds";
-    int msSinceLastPaint = measureFPSTimer.restart();
+    int msSinceLastPaint = m_measureFPSTimer.restart();
     emit msSinceLastPaintChanged(msSinceLastPaint);
 }
 

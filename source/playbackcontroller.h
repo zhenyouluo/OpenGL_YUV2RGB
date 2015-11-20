@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QItemSelection>
 #include <QTimer>
+#include <QElapsedTimer>
 #include <memory>
 #include "yuvsource.h"
 
@@ -24,8 +25,10 @@ signals:
     void newSequenceFormat(int frameWidth, int frameHeight, int numFrames, int frameRate);
     void newFrame(const QByteArray &textureData);
     void positionHasChanged(int frameIdx);
+    void msSinceLastSentFrameChanged(int ms);
 
 private:
+    void setFrame();
     void convertYUV2RGB(QByteArray *sourceBuffer, QByteArray *targetBuffer, YUVCPixelFormatType targetPixelFormat, YUVCPixelFormatType srcPixelFormat);
 
     std::shared_ptr<YUVSource> m_yuvTextureSource;
@@ -46,6 +49,8 @@ private:
 
     std::shared_ptr<QTimer> m_playBackTimer;
     bool m_isPlaying;
+
+    QElapsedTimer m_measureFPSSentTimer;
 
 };
 

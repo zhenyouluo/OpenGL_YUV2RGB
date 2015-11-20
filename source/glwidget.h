@@ -127,7 +127,7 @@ private:
 
     bool m_transparent;
 
-    QElapsedTimer measureFPSTimer;
+    QElapsedTimer m_measureFPSTimer;
 
 };
 
