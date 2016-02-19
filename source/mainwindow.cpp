@@ -109,10 +109,19 @@ void MainWindow::updateGUIControls(int frameWidth, int frameHeight, int numFrame
 {
     qDebug() << "Function Name: " << Q_FUNC_INFO;
 
+    // ensure updating gui does not cause any signals firing back
+    ui->frameCounterSpinBox->blockSignals(true);
+    ui->playbackLocationSlider->blockSignals(true);
+
+    // update gui
     ui->frameCounterSpinBox->setMinimum(1);
     ui->frameCounterSpinBox->setMaximum(numFrames);
     ui->playbackLocationSlider->setMinimum(1);
     ui->playbackLocationSlider->setMaximum(numFrames);
+
+    // reenable signals
+    ui->frameCounterSpinBox->blockSignals(false);
+    ui->playbackLocationSlider->blockSignals(false);
 }
 
 void MainWindow::updatePosition(int frameIdx)

@@ -252,10 +252,6 @@ void GLWidget::initializeGL()
 
     setupMatrices();
 
-    m_frameHeight = 1080;
-    m_frameWidth = 1920;
-
-
     // Create a vertex array object. In OpenGL ES 2.0 and OpenGL 2.x
     // implementations this is optional and support may not be present
     // at all. Nonetheless the below code works in all cases and makes

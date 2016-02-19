@@ -98,7 +98,7 @@ void PlaybackController::setFrame()
 //    QImage test= QImage((unsigned char*)m_tmpBufferYUV444.data(),m_frameWidth,m_frameHeight,QImage::Format_RGB888).copy();
 
   // depthmap data, using luma as depth, ignoring chroma
-  m_yuvDepthSource->getOneDepthFrame(&m_tmpBufferYUV444, m_currentFrame);
+//  m_yuvDepthSource->getOneDepthFrame(&m_tmpBufferYUV444, m_currentFrame);
 
   qDebug() << "Reading and converting texture and depth took" << timer.elapsed() << "milliseconds";
 

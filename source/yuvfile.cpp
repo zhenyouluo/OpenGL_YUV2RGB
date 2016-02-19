@@ -205,18 +205,30 @@ void YUVFile::formatFromFile()
 		// regular expressions. Try to get the pixel format by checking with the file size.
 
 		YUVCPixelFormatType cFormat;
-        if (bitDepth==8)
-        {
-            cFormat = YUVC_420YpCbCr8PlanarPixelFormat;
-            int bpf = YUVFile::bytesPerFrame(width, height, cFormat); // assume 4:2:0, 8bit
+    if (bitDepth==8)
+    {
+      switch(subFormat)
+      {
+      case 444:
+        cFormat = YUVC_444YpCbCr8PlanarPixelFormat;
+        break;
+      case 422:
+        cFormat = YUVC_422YpCbCr8PlanarPixelFormat;
+        break;
+      case 420:
+      default:
+        cFormat = YUVC_420YpCbCr8PlanarPixelFormat;
+        break;
+      }
+      int bpf = YUVFile::bytesPerFrame(width, height, cFormat);
 			if (bpf != 0 && (p_fileSize % bpf) == 0) {
 				// Bits per frame and file size match
 				setFormat(width, height, frameRate);
 				setPixelFormat(cFormat);
 				return;
 			}
-        }
-        else if (bitDepth==10)
+    }
+    else if (bitDepth==10)
         {
 			cFormat = (subFormat == 444) ? YUVC_444YpCbCr10LEPlanarPixelFormat : YUVC_420YpCbCr10LEPlanarPixelFormat;
 			int bpf = YUVFile::bytesPerFrame(width, height, cFormat); // assume 4:2:0 or 4:4:4 if in file name, 10bit
