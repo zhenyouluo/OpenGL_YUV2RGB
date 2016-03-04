@@ -180,7 +180,7 @@ void PlaybackController::setSequence(QItemSelection sequence)
 
 //Update the PixelFormat
 void PlaybackController::updateSequence(int pixelFormatIdx) {
-
+    //Update frame height, width
 }
 
 void PlaybackController::playOrPause()
