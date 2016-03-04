@@ -45,7 +45,7 @@
          <item>
           <widget class="QPushButton" name="loadTextureAndDepthButton">
            <property name="text">
-            <string>Load Texture and Depth</string>
+            <string>Load Texture</string>
            </property>
           </widget>
          </item>
@@ -177,9 +177,139 @@
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_2">
        <item>
+        <widget class="QLabel" name="pixelFormatLabel">
+         <property name="text">
+          <string>Pixel Format</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="changePixelFormatBox">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <item>
+          <property name="text">
+           <string>Unknown</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>GBR12in16LEPlanar</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>32RGBA</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>24RGB</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>24BGR</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>444YpCbCr16LEPPlanar</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>444YpCbCr16BEPPlanar</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>444YpCbCr12LEPPlanar</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>444YpCbCr12BEPPlanar</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>444YpCbCr10LEPPlanar</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>444YpCbCr16BEPPlanar</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>444YpCbCr8Planar</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>444YpCrCb8Planar</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>422YpCbCr8Planar</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>422YpCrCb8Planar</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>UYVY422</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>422YpCbCr10</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>UYVY422YpCbCr10</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>420YpCbCr10LEPlanar</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>420YpCbCr8Planar</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>411YpCbCr8Planar</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>8Gray</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+       <item>
         <spacer name="horizontalSpacer">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeType">
+          <enum>QSizePolicy::Expanding</enum>
          </property>
          <property name="sizeHint" stdset="0">
           <size>
@@ -250,7 +380,7 @@
      <x>0</x>
      <y>0</y>
      <width>1013</width>
-     <height>26</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>

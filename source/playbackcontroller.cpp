@@ -59,14 +59,15 @@ void PlaybackController::previousFrame()
     }
 }
 
-
 void PlaybackController::setFrame(int frameIdx)
 {        
     qDebug() << "Function Name: " << Q_FUNC_INFO;
 
     if(m_currentFrame == frameIdx)
-      return;
-
+    {
+        qDebug() << "Same Frame Index";
+        return;
+    }
     m_currentFrame = frameIdx;
     setFrame();
 }
@@ -109,7 +110,6 @@ void PlaybackController::setFrame()
   emit msSinceLastSentFrameChanged(msSinceLastSentFrame);
 }
 
-
 void PlaybackController::setSequence(QItemSelection sequence)
 {
     qDebug() << "Function Name: " << Q_FUNC_INFO;
@@ -119,13 +119,13 @@ void PlaybackController::setSequence(QItemSelection sequence)
     SequenceMetaDataItem sequenceMetaData = sequence.indexes().first().data(Qt::UserRole).value<SequenceMetaDataItem>();
 
     QString fileNameTexture = sequenceMetaData.fileNameTexture();
-    QString fileNameDepth = sequenceMetaData.fileNameDepth();
+    //QString fileNameDepth = sequenceMetaData.fileNameDepth();
 
 
     QFileInfo checkFileTexture(fileNameTexture);
-    QFileInfo checkFileDepth(fileNameDepth);
-    if( checkFileTexture.exists() && checkFileTexture.isFile()
-     && checkFileDepth.exists()   && checkFileDepth.isFile())
+    //QFileInfo checkFileDepth(fileNameDepth);
+    if( checkFileTexture.exists() && checkFileTexture.isFile())
+     //&& checkFileDepth.exists()   && checkFileDepth.isFile())
     {
         // These are a files. Get the file extensions and open them.
         QString fileExt = checkFileTexture.suffix().toLower();
@@ -133,20 +133,23 @@ void PlaybackController::setSequence(QItemSelection sequence)
             // Open YUV file
             m_yuvTextureSource = std::make_shared<YUVFile>(fileNameTexture);
         }
-        fileExt = checkFileDepth.suffix().toLower();
-        if (fileExt == "yuv") {
+        //fileExt = checkFileDepth.suffix().toLower();
+        /*if (fileExt == "yuv") {
             // Open YUV file
             m_yuvDepthSource = std::make_shared<YUVFile>(fileNameDepth);
-        }
+        }*/
 
-        int widthTexture, widthDepth;
-        int heightTexture, heightDepth;
-        int numFramesTexture, numFramesDepth;
-        double frameRateTexture, frameRateDepth;
+        int widthTexture;
+        int heightTexture;
+        int numFramesTexture;
+        double frameRateTexture;
         m_yuvTextureSource->getFormat(&widthTexture, &heightTexture, &numFramesTexture, &frameRateTexture);
-        m_yuvDepthSource->getFormat(&widthDepth, &heightDepth, &numFramesDepth, &frameRateDepth);
+        //m_yuvDepthSource->getFormat(&widthDepth, &heightDepth, &numFramesDepth, &frameRateDepth);
 
-        if(     widthDepth != widthTexture || heightDepth != heightTexture ||
+        //NOTE Can be wrong, but it works
+        m_numFrames = numFramesTexture;
+
+        /*if(     widthDepth != widthTexture || heightDepth != heightTexture ||
                 numFramesDepth != numFramesTexture || frameRateDepth != frameRateTexture)
         {
             qWarning() << "Texture and Depth have different format! (lenght, frame size or rate)";
@@ -159,22 +162,24 @@ void PlaybackController::setSequence(QItemSelection sequence)
 //            m_yuvDepthSource.reset();
 //            m_yuvTextureSource.reset();
 //            return;
-        }
+        }*/
 
         m_frameWidth = widthTexture;
         m_frameHeight = heightTexture;
 
         m_frameRate = frameRateTexture;
 
-        emit newSequenceFormat(m_frameWidth, m_frameHeight, m_numFrames, m_frameRate);
+        emit newSequenceFormat(m_frameWidth, m_frameHeight, m_yuvTextureSource->pixelFormat(), m_numFrames, m_frameRate);
 
         // ensure current frame has valid index
         if( (m_currentFrame < 1) || (m_currentFrame > m_numFrames)) m_currentFrame = 1;
 
         setFrame(m_currentFrame);
-
     }
+}
 
+//Update the PixelFormat
+void PlaybackController::updateSequence(int pixelFormatIdx) {
 
 }
 
@@ -200,8 +205,6 @@ void PlaybackController::playOrPause()
     }
 
 }
-
-
 
 void PlaybackController::convertYUV2RGB(QByteArray *sourceBuffer, QByteArray *targetBuffer, YUVCPixelFormatType targetPixelFormat, YUVCPixelFormatType srcPixelFormat)
 {

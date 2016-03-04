@@ -365,7 +365,7 @@ void YUVFile::getOneFrame(QByteArray* targetByteArray, unsigned int frameIdx )
 	}
 
     // check if we need to do chroma upsampling
-    if(p_srcPixelFormat != YUVC_444YpCbCr8PlanarPixelFormat && p_srcPixelFormat != YUVC_444YpCbCr12NativePlanarPixelFormat && p_srcPixelFormat != YUVC_444YpCbCr16NativePlanarPixelFormat && p_srcPixelFormat != YUVC_24RGBPixelFormat )
+    /*if(p_srcPixelFormat != YUVC_444YpCbCr8PlanarPixelFormat && p_srcPixelFormat != YUVC_444YpCbCr12NativePlanarPixelFormat && p_srcPixelFormat != YUVC_444YpCbCr16NativePlanarPixelFormat && p_srcPixelFormat != YUVC_24RGBPixelFormat )
     {
         // read one frame into temporary buffer
         readFrame( &p_tmpBufferYUV, frameIdx, p_width, p_height);
@@ -377,7 +377,8 @@ void YUVFile::getOneFrame(QByteArray* targetByteArray, unsigned int frameIdx )
     {
         // read one frame into cached frame (already in YUV444 format)
         readFrame( targetByteArray, frameIdx, p_width, p_height);
-    }
+    }*/
+    readFrame( targetByteArray, frameIdx, p_width, p_height);
 }
 
 void YUVFile::getOneDepthFrame(QByteArray* targetByteArray, unsigned int frameIdx )

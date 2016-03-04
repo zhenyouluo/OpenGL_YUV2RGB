@@ -1,15 +1,18 @@
 #version 330 core
 
 // Interpolated values from the vertex shaders
-in vec2 UV;
+in vec2 fragmentUVLuma;
+in vec2 fragmentUVChroma;
 
 // Ouput data
-out vec3 color;
+out vec3 color_0;
+//out vec3 color_1;
 
 // Values that stay constant for the whole mesh.
 uniform sampler2D textureSamplerRed;
 uniform sampler2D textureSamplerGreen;
 uniform sampler2D textureSamplerBlue;
+
 
 void main(){
 
@@ -20,9 +23,11 @@ void main(){
 
     // Output color = color of the texture at the specified UV
     vec3 color709;
-    color709.r = texture2D( textureSamplerRed, UV ).r;
-    color709.g = texture2D( textureSamplerGreen, UV ).r;
-    color709.b = texture2D( textureSamplerBlue, UV ).r;
+    color709.r = texture2D( textureSamplerRed, fragmentUVLuma ).r;
+    color709.g = texture2D( textureSamplerGreen, fragmentUVChroma ).r;
+    color709.b = texture2D( textureSamplerBlue, fragmentUVChroma ).r;
+
+    //color709.rgb = texture2D( textureSamplerYUV, fragmentUV ).rgb;
 
     // make sure input has correct range
     color709.r = clamp(color709.r, 16.0/255, 235.0/255); // Y
@@ -33,10 +38,9 @@ void main(){
     color709.r = color709.r - 0.0625;
     color709.g = color709.g - 0.5;
     color709.b = color709.b - 0.5;
-
     // finally the conversion
-    vec3 rgb = clamp(mat709toRGB * color709, 0.0, 1.0);
-
-    color = rgb;
-//    color = texture2D( textureSampler, UV ).rgb;
+    color_0 = clamp(mat709toRGB * color709, 0.0, 1.0);
+    //color_1.r = 0.5;
+    //color_1.g = 0.7;
+    //color_1.b = 0.8;
 }

@@ -30,25 +30,25 @@ MainWindow::MainWindow(QWidget *parent) :
             m_playbackController,SLOT(setFrame(int)));
     connect(ui->frameCounterSpinBox,SIGNAL(valueChanged(int)),
             m_playbackController,SLOT(setFrame(int)));
+    connect(ui->changePixelFormatBox,SIGNAL(currentIndexChanged(int)),
+            m_playbackController,SLOT(updateSequence(int)));
+
 
     connect(ui->yuvListView->selectionModel(),SIGNAL(selectionChanged(QItemSelection,QItemSelection)), // yuvListView to controller
             m_playbackController,SLOT(setSequence(QItemSelection)));
     connect(ui->playButton,SIGNAL(clicked(bool)),
             m_playbackController,SLOT(playOrPause()));
     // controller to gui
-    connect(m_playbackController,SIGNAL(newSequenceFormat(int,int,int,int)),
-            this,SLOT(updateGUIControls(int,int,int,int)));
-    connect(m_playbackController,SIGNAL(newSequenceFormat(int,int,int,int)),
-            ui->videoWidget,SLOT(updateFormat(int,int)));
+    connect(m_playbackController,SIGNAL(newSequenceFormat(int,int,int,int,int)),
+            this,SLOT(updateGUIControls(int,int,int,int,int)));
+    connect(m_playbackController,SIGNAL(newSequenceFormat(int,int,int,int,int)),
+            ui->videoWidget,SLOT(updateFormat(int,int,int)));
     connect(m_playbackController,SIGNAL(newFrame(QByteArray)),
             ui->videoWidget,SLOT(updateFrame(QByteArray)));
-
     connect(m_playbackController,SIGNAL(positionHasChanged(int)),
             this,SLOT(updatePosition(int)));
-
     connect(m_playbackController,SIGNAL(msSinceLastSentFrameChanged(int)),
             this,SLOT(updateFramesSentRate(int)));
-
     // connect video widget
     connect(ui->videoWidget,SIGNAL(msSinceLastPaintChanged(int)),
             this,SLOT(updateFrameRate(int)));
@@ -73,17 +73,18 @@ void MainWindow::on_loadTextureAndDepthButton_clicked()
                 tr("Open sequence texture"),
                 "",
                 "Text files (*.yuv);;All files (*)");
-    QString fileNameDepth  =     QString("/original/3D_FTV/PoznanBlocks/depth_8bit_400/Poznan_Blocks_d0_1920x1080_25.yuv");
-//    if(fileNameDepth.isEmpty() || fileNameTexture.isEmpty()) return;
 
-    // speed up debugging
-    if(fileNameTexture.isEmpty())
-    {
-        fileNameTexture = QString("/original/3D_FTV/PoznanBlocks/1-ColorCorrected/Poznan_Blocks_t0_1920x1080_25.yuv");
-    }
+    /*QString fileNameDepth = QFileDialog::getOpenFileName(
+                this,
+                tr("Open sequence deth"),
+                "",
+                "Text files (*.yuv);;All files (*)");*/
+
+    //if(fileNameDepth.isEmpty() || fileNameTexture.isEmpty()) return;
+    if(fileNameTexture.isEmpty()) return;
 
     /// todo: only stores filenames, since playbackcontroller finds out format
-    SequenceMetaDataItem sequence(fileNameTexture,fileNameDepth,0,0);
+    SequenceMetaDataItem sequence(fileNameTexture,0,0);
     m_sequences->insertItem(sequence);
 
 }
@@ -105,7 +106,7 @@ void MainWindow::on_loadTextureAndDepthButton_clicked()
 //    ui->frameCounterSpinBox->setValue(frameIdx);
 //}
 
-void MainWindow::updateGUIControls(int frameWidth, int frameHeight, int numFrames, int frameRate)
+void MainWindow::updateGUIControls(int frameWidth, int frameHeight, int PxlFormat, int numFrames, int frameRate)
 {
     qDebug() << "Function Name: " << Q_FUNC_INFO;
 
@@ -118,7 +119,7 @@ void MainWindow::updateGUIControls(int frameWidth, int frameHeight, int numFrame
     ui->frameCounterSpinBox->setMaximum(numFrames);
     ui->playbackLocationSlider->setMinimum(1);
     ui->playbackLocationSlider->setMaximum(numFrames);
-
+    ui->changePixelFormatBox->setCurrentIndex(PxlFormat);
     // reenable signals
     ui->frameCounterSpinBox->blockSignals(false);
     ui->playbackLocationSlider->blockSignals(false);

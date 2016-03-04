@@ -60,6 +60,10 @@
 #include <glm/glm.hpp>
 #include <QItemSelection>
 
+//Get PixelFormat
+#include "yuvsource.h"
+
+
 QT_FORWARD_DECLARE_CLASS(QOpenGLShaderProgram)
 
 class GLWidget : public QOpenGLWidget, protected QOpenGLFunctions
@@ -78,8 +82,8 @@ public:
 public slots:
     void cleanup();
     void updateFrame(const QByteArray &textureData); // display a new frame
-    void updateFormat(int frameWidth, int frameHeight); // change frame format (width, height, ...)
-
+    // change frame format (width, height, ...
+    void updateFormat(int frameWidth, int frameHeight, int PxlFormat);
 signals:
     void msSinceLastPaintChanged(int ms);
 
@@ -88,6 +92,10 @@ protected:
     void paintGL() Q_DECL_OVERRIDE;
 
 private:
+    void computeFrameVertices(int frameWidth, int frameHeight);
+    void computeFrameMesh(int frameWidth, int frameHeight);
+    void computeLumaTextureCoordinates(int frameWidth, int frameHeight);
+    void computeChromaTextureCoordinates(int frameWidth, int frameHeight);
     void setupVertexAttribs();
     void setupMatrices();
     glm::mat4 getProjectionFromCamCalibration(glm::mat3 &calibrationMatrix, float clipFar, float clipNear);
@@ -97,15 +105,30 @@ private:
     int m_frameWidth;
     int m_frameHeight;
 
+    YUVCPixelFormatType m_pixelFormat;
+    int m_horizontalSubSampling;
+    int m_verticalSubSampling;
+    int m_bytesperComponent;
+    int m_swapUV;
+    int m_componentLength;
+
+    int *m_srcY;
+    int *m_srcU;
+    int *m_srcV;
+
+
     QPoint m_lastPos;    
     QOpenGLVertexArrayObject m_vao;
     QOpenGLBuffer m_vertices_Vbo;
     QOpenGLBuffer m_vertice_indices_Vbo;
-    QOpenGLBuffer m_texture_coordinates_Vbo;
+    //QOpenGLBuffer m_texture_coordinates_Vbo;
+    QOpenGLBuffer m_textureLuma_coordinates_Vbo;
+    QOpenGLBuffer m_textureChroma_coordinates_Vbo;
+    //QOpenGLBuffer m_depth_Vbo;
 
-    std::shared_ptr<QOpenGLTexture> m_texture_red_data;
-    std::shared_ptr<QOpenGLTexture> m_texture_green_data;
-    std::shared_ptr<QOpenGLTexture> m_texture_blue_data;
+    std::shared_ptr<QOpenGLTexture> m_texture_Ydata;
+    std::shared_ptr<QOpenGLTexture> m_texture_Udata;
+    std::shared_ptr<QOpenGLTexture> m_texture_Vdata;
     QImage::Format m_textureFormat;
     QVector<GLfloat> m_vertices_data;
 
@@ -115,15 +138,17 @@ private:
 
     // handles for texture, vertices and depth
     int m_vertices_Loc;
-    int m_texture_Loc;
-
+    int m_textureLuma_Loc;
+    int m_textureChroma_Loc;
     glm::mat4 m_MVP;
 
     std::vector<glm::vec3> m_videoFrameTriangles_vertices;
     // each vector (of 3 unsigned int) holds the indices for one triangle in the video frame
     std::vector<unsigned int> m_videoFrameTriangles_indices;
     // Vector which will the texture coordinates which maps the texture (the video data) to the frame's vertices.
-    std::vector<float> m_videoFrameTriangles_texture_uv;
+    std::vector<float> m_videoFrameDataPoints_Luma;
+
+    std::vector<float> m_videoFrameDataPoints_Chroma;
 
     bool m_transparent;
 

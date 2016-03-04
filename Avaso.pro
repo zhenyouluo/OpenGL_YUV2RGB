@@ -41,7 +41,6 @@ SOURCES += \
 FORMS    += forms/mainwindow.ui
 
 OTHER_FILES += \
-    shaders/fragmentshader.glsl \
     shaders/fragmentYUV2RGBshader.glsl \
     shaders/vertexshader.glsl
 

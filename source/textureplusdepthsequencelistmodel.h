@@ -12,18 +12,18 @@ class SequenceMetaDataItem
 {
 public:
     SequenceMetaDataItem(){}
-    SequenceMetaDataItem(QString fNameTexture, QString fNameDepth, int frameWidth, int frameHeight)
-        : m_fileNameTexture(fNameTexture), m_fileNameDepth(fNameDepth), m_frameWidth(frameWidth), m_frameHeight(frameHeight) {}
+    SequenceMetaDataItem(QString fNameTexture, int frameWidth, int frameHeight)
+        : m_fileNameTexture(fNameTexture), m_frameWidth(frameWidth), m_frameHeight(frameHeight) {}
 
 
     QString fileNameTexture() const;
-    QString fileNameDepth() const;
+    //QString fileNameDepth() const;
     int frameWidth() const;
     int frameHeight() const;
 
 private:
     QString m_fileNameTexture;
-    QString m_fileNameDepth;
+    //QString m_fileNameDepth;
     int m_frameWidth;
     int m_frameHeight;
 };

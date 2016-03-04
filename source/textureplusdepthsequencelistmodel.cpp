@@ -6,10 +6,10 @@ QString SequenceMetaDataItem::fileNameTexture() const
     return m_fileNameTexture;
 }
 
-QString SequenceMetaDataItem::fileNameDepth() const
+/*QString SequenceMetaDataItem::fileNameDepth() const
 {
     return m_fileNameDepth;
-}
+}*/
 
 int SequenceMetaDataItem::frameWidth() const
 {

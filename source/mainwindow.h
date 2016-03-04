@@ -26,7 +26,7 @@ public slots:
 //    void on_previousFrameButton_clicked();
 
     // manually connected
-    void updateGUIControls(int frameWidth, int frameHeight, int numFrames, int frameRate);
+    void updateGUIControls(int frameWidth, int frameHeight, int PxlFormat, int numFrames, int frameRate);
     void updatePosition(int frameIdx);
     void updateFrameRate(int msSinceLastPaint);
     void updateFramesSentRate(int msSinceLastSentFrame);

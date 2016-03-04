@@ -20,12 +20,13 @@ public slots:
     void setFrame(int frameIdx);
     void setSequence(QItemSelection sequence);
     void playOrPause();
-
+    void updateSequence(int pixelFormatIdx);
 signals:
-    void newSequenceFormat(int frameWidth, int frameHeight, int numFrames, int frameRate);
+    void newSequenceFormat(int frameWidth, int frameHeight, int PxlFormat, int numFrames, int frameRate);
     void newFrame(const QByteArray &textureData);
     void positionHasChanged(int frameIdx);
     void msSinceLastSentFrameChanged(int ms);
+    void newPixelFormat(int pixelFormatIdx);
 
 private:
     void setFrame();
@@ -40,6 +41,8 @@ private:
     int m_frameHeight;
     int m_numFrames;
     double m_frameRate;
+
+
 
     QByteArray m_conversionBuffer;
     QByteArray m_tmpBufferYUV444;
