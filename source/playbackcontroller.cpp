@@ -180,7 +180,31 @@ void PlaybackController::setSequence(QItemSelection sequence)
 
 //Update the PixelFormat
 void PlaybackController::updateSequence(int pixelFormatIdx) {
-    //Update frame height, width
+
+    int widthTexture;
+    int heightTexture;
+    int numFramesTexture;
+    double frameRateTexture;
+
+    //Stop video
+    if(m_isPlaying)
+        playOrPause();
+
+    m_yuvTextureSource->setPixelFormat(YUVCPixelFormatType(pixelFormatIdx));
+    //get new format
+    if(!m_frameWidth || !m_frameHeight)
+        //TODO: Recalculate frame width and frame heigh
+        return;
+
+    m_yuvTextureSource->getFormat(&widthTexture, &heightTexture, &numFramesTexture, &frameRateTexture);
+    m_numFrames = numFramesTexture;
+    m_frameWidth = widthTexture;
+    m_frameHeight = heightTexture;
+    m_frameRate = frameRateTexture;
+
+    newSequenceFormat(m_frameWidth, m_frameHeight, YUVCPixelFormatType(pixelFormatIdx), m_numFrames, m_frameRate);
+    //update current frame with new pixel format
+    emit newFrame( m_tmpTextureBufferYUV444);
 }
 
 void PlaybackController::playOrPause()
