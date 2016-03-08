@@ -8,6 +8,14 @@ QT       += core gui
 
 CONFIG += c++11
 
+CONFIG(release, debug|release) {
+    message("release mode")
+    DEFINES += QT_NO_DEBUG_OUTPUT
+} else {
+    message("debug mode")
+}
+
+
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = Avaso
