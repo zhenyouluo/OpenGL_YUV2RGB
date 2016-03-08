@@ -40,6 +40,7 @@ public:
     // reads one frame in YUV444 into target byte array
     virtual void getOneFrame( QByteArray* targetByteArray, unsigned int frameIdx );
     virtual void getOneDepthFrame(QByteArray *targetByteArray, unsigned int frameIdx);
+  qint64 getNFrames(QByteArray *targetByteArray, unsigned int nrFrames, unsigned int frameIdx);
 
 	// Return the source file name
 	virtual QString getName();
@@ -67,7 +68,8 @@ private:
 	qint64  p_fileSize;
 
     qint64 readFrame( QByteArray *targetBuffer, unsigned int frameIdx, int width, int height );
-	    
+    qint64 readNFrames(QByteArray *targetBuffer, unsigned int nrFrames, unsigned int frameIdx, int width, int height);
+
 	// Try to get the format the file name or the frame correlation of the first two frames
 	void formatFromFile();
 	void formatFromCorrelation();

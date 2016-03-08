@@ -42,11 +42,15 @@ private:
     int m_numFrames;
     double m_frameRate;
 
-
+    int m_numCachedFrames;
+    int m_numCachedFramesPlayed;
+    qint64 m_bpf;
 
     QByteArray m_conversionBuffer;
     QByteArray m_tmpBufferYUV444;
     QByteArray m_tmpTextureBufferYUV444;
+
+    QByteArray m_tmpNFramesTextureBuffer;
 
     YUVCColorConversionType m_colorConversionMode;
 

@@ -163,6 +163,25 @@ qint64 YUVFile::readFrame( QByteArray *targetBuffer, unsigned int frameIdx, int 
     return bpf;
 }
 
+
+qint64 YUVFile::readNFrames( QByteArray *targetBuffer, unsigned int nrFrames, unsigned int frameIdx, int width, int height )
+{
+    if(p_srcFile == NULL)
+        return 0;
+
+    qint64 bpf = bytesPerFrame(width, height, p_srcPixelFormat);
+    qint64 startPos = frameIdx * bpf;
+
+    // check if our buffer is big enough
+    if( targetBuffer->size() != bpf * nrFrames)
+        targetBuffer->resize(bpf * nrFrames);
+
+    // read bytes from file
+    readBytes( targetBuffer->data(), startPos, bpf * nrFrames);
+
+    return bpf;
+}
+
 void YUVFile::readBytes( char *targetBuffer, qint64 startPos, qint64 length )
 {
     if(p_srcFile == NULL)
@@ -379,6 +398,30 @@ void YUVFile::getOneFrame(QByteArray* targetByteArray, unsigned int frameIdx )
         readFrame( targetByteArray, frameIdx, p_width, p_height);
     }*/
     readFrame( targetByteArray, frameIdx, p_width, p_height);
+}
+
+qint64 YUVFile::getNFrames(QByteArray* targetByteArray, unsigned int nrFrames, unsigned int frameIdx )
+{
+  if (p_width <= 0 || p_height <= 0 || p_srcPixelFormat == YUVC_UnknownPixelFormat) {
+    // Width, height or pixel Fromat invalid. Set them before getting frames.
+    return 0;
+  }
+
+    // check if we need to do chroma upsampling
+    /*if(p_srcPixelFormat != YUVC_444YpCbCr8PlanarPixelFormat && p_srcPixelFormat != YUVC_444YpCbCr12NativePlanarPixelFormat && p_srcPixelFormat != YUVC_444YpCbCr16NativePlanarPixelFormat && p_srcPixelFormat != YUVC_24RGBPixelFormat )
+    {
+        // read one frame into temporary buffer
+        readFrame( &p_tmpBufferYUV, frameIdx, p_width, p_height);
+        //use dummy data to check
+        // convert original data format into YUV444 planar format
+        convert2YUV444(&p_tmpBufferYUV, p_width, p_height, targetByteArray);
+    }
+    else    // source and target format are identical --> no conversion necessary
+    {
+        // read one frame into cached frame (already in YUV444 format)
+        readFrame( targetByteArray, frameIdx, p_width, p_height);
+    }*/
+    return readNFrames( targetByteArray, nrFrames, frameIdx, p_width, p_height);
 }
 
 void YUVFile::getOneDepthFrame(QByteArray* targetByteArray, unsigned int frameIdx )

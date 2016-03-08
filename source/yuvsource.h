@@ -97,6 +97,7 @@ public:
 	// reads one frame in YUV444 into target byte array
 	virtual void getOneFrame(QByteArray* targetByteArray, unsigned int frameIdx) = 0;
     virtual void getOneDepthFrame(QByteArray *targetByteArray, unsigned int frameIdx) = 0;
+  virtual qint64 getNFrames(QByteArray *targetByteArray, unsigned int nrFrames, unsigned int frameIdx) = 0;
 
 	// Get the name of this YUV source. For a file this is usually the file name. For a network source it might be something else.
 	virtual QString getName() = 0;

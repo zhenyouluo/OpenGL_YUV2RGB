@@ -28,7 +28,8 @@ static unsigned char *clip_buf = clp_buf+384;
 PlaybackController::PlaybackController() : m_isPlaying(false)
 {
     m_colorConversionMode = YUVC709ColorConversionType;
-
+    m_numCachedFrames = 0
+        ;
     // initialize clipping table
     memset(clp_buf, 0, 384);
     int i;
@@ -79,11 +80,37 @@ void PlaybackController::setFrame()
   QElapsedTimer timer;
   timer.start();
 
+  const int cacheSize = 100;
+
+
+
+
   if (m_yuvTextureSource->pixelFormat() != YUVC_24RGBPixelFormat)
   {
-      // read YUV444 frame from file - 16 bit LE words
-      m_yuvTextureSource->getOneFrame(&m_tmpTextureBufferYUV444, m_currentFrame);
 
+      if(m_numCachedFrames == 0)
+      { // cache new sequence of frames
+        m_bpf = m_yuvTextureSource->getNFrames(&m_tmpNFramesTextureBuffer, cacheSize, m_currentFrame);
+        m_numCachedFrames  = cacheSize;
+
+        // check if our buffer is big enough
+//        int test = m_tmpTextureBufferYUV444.size();
+        if( m_tmpTextureBufferYUV444.size() != m_bpf * cacheSize)
+            m_tmpTextureBufferYUV444.resize(m_bpf);
+
+        // set pointer to first cached frame
+        m_tmpTextureBufferYUV444.setRawData(m_tmpNFramesTextureBuffer.data(), m_bpf);
+        m_numCachedFramesPlayed = 1;
+      }
+      else{
+        // set pointer to nth cached frame
+        m_tmpTextureBufferYUV444.setRawData(m_tmpNFramesTextureBuffer.data()+m_bpf*m_numCachedFramesPlayed, m_bpf);
+        m_numCachedFramesPlayed++;
+
+        // cached played out, start it again
+        if(m_numCachedFramesPlayed == cacheSize)
+          m_numCachedFrames = 0;
+      }
 
       // convert from YUV444 (planar) - 16 bit words to RGB888 (interleaved) color format (in place)
 //        convertYUV2RGB(&m_tmpBufferYUV444, &m_conversionBuffer, YUVC_24RGBPixelFormat, m_yuvTextureSource->pixelFormat());
