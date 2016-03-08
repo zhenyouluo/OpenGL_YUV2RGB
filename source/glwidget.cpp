@@ -212,7 +212,7 @@ void GLWidget::updateFormat(int frameWidth, int frameHeight, int PxlFormat)
     QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
 
     // compute frame vertices and copy to buffer
-    computeFrameVertices(m_frameWidth, m_frameHeight);
+    /*computeFrameVertices(m_frameWidth, m_frameHeight);
     m_vertices_Vbo.bind();
     m_vertices_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
     m_vertices_Vbo.allocate(&m_videoFrameTriangles_vertices[0], m_videoFrameTriangles_vertices.size()* sizeof(glm::vec3));
@@ -240,31 +240,33 @@ void GLWidget::updateFormat(int frameWidth, int frameHeight, int PxlFormat)
 
     setupMatrices();
 
-    update();
+    update();*/
 
     // just put video on two triangles forming a rectangle
     // compute frame vertices and copy to buffer
 
-    /*m_videoFrameTriangles_vertices.clear();
-    m_videoFrameTriangles_vertices.push_back(glm::vec3(0,0,0));
-    m_videoFrameTriangles_vertices.push_back(glm::vec3(m_frameWidth,0,0));
-    m_videoFrameTriangles_vertices.push_back(glm::vec3(0,m_frameHeight,0));
-    m_videoFrameTriangles_vertices.push_back(glm::vec3(m_frameWidth,m_frameHeight,0));
+    m_videoFrameTriangles_vertices.clear();
+    m_videoFrameTriangles_vertices.push_back(glm::vec3(-1,-1,0));
+    m_videoFrameTriangles_vertices.push_back(glm::vec3(1,1,0));
+    m_videoFrameTriangles_vertices.push_back(glm::vec3(-1,1,0));
+    m_videoFrameTriangles_vertices.push_back(glm::vec3(1,-1,0));
+    //First Triangle
     m_videoFrameTriangles_indices.push_back(0);
-    m_videoFrameTriangles_indices.push_back(2);
-    m_videoFrameTriangles_indices.push_back(1);
     m_videoFrameTriangles_indices.push_back(1);
     m_videoFrameTriangles_indices.push_back(2);
+    // second triangle
     m_videoFrameTriangles_indices.push_back(3);
-    m_videoFrameTriangles_texture_uv.clear();
-    m_videoFrameTriangles_texture_uv.push_back(0.f);
-    m_videoFrameTriangles_texture_uv.push_back(0.f);
-    m_videoFrameTriangles_texture_uv.push_back(1.f);
-    m_videoFrameTriangles_texture_uv.push_back(0.f);
-    m_videoFrameTriangles_texture_uv.push_back(0.f);
-    m_videoFrameTriangles_texture_uv.push_back(1.f);
-    m_videoFrameTriangles_texture_uv.push_back(1.f);
-    m_videoFrameTriangles_texture_uv.push_back(1.f);
+    //m_videoFrameTriangles_indices.push_back(1);
+    //m_videoFrameTriangles_indices.push_back(3);
+    m_videoFrameDataPoints_Luma.clear();
+    m_videoFrameDataPoints_Luma.push_back(0.f);
+    m_videoFrameDataPoints_Luma.push_back(0.f);
+    m_videoFrameDataPoints_Luma.push_back(1.f);
+    m_videoFrameDataPoints_Luma.push_back(1.f);
+    m_videoFrameDataPoints_Luma.push_back(0.f);
+    m_videoFrameDataPoints_Luma.push_back(1.f);
+    m_videoFrameDataPoints_Luma.push_back(1.f);
+    m_videoFrameDataPoints_Luma.push_back(0.f);
     m_vertices_Vbo.create();
     m_vertices_Vbo.bind();
     m_vertices_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
@@ -275,14 +277,14 @@ void GLWidget::updateFormat(int frameWidth, int frameHeight, int PxlFormat)
     m_vertice_indices_Vbo.bind();
     m_vertice_indices_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
     m_vertice_indices_Vbo.allocate(&m_videoFrameTriangles_indices[0], m_videoFrameTriangles_indices.size() * sizeof(unsigned int));
-    m_texture_coordinates_Vbo.create();
-    m_texture_coordinates_Vbo.bind();
-    m_texture_coordinates_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
-    m_texture_coordinates_Vbo.allocate(&m_videoFrameTriangles_texture_uv[0], m_videoFrameTriangles_texture_uv.size() * sizeof(float));*/
+    m_textureLuma_coordinates_Vbo.create();
+    m_textureLuma_coordinates_Vbo.bind();
+    m_textureLuma_coordinates_Vbo.setUsagePattern(QOpenGLBuffer::StaticDraw);
+    m_textureLuma_coordinates_Vbo.allocate(&m_videoFrameDataPoints_Luma[0], m_videoFrameDataPoints_Luma.size() * sizeof(float));
 
     //recompute opengl matrices
-    setupMatrices();
 
+    setupMatrices();
     update();
 
 }
@@ -317,7 +319,6 @@ void GLWidget::initializeGL()
     // sure there is a VAO when one is needed.
     m_vao.create();
     QOpenGLVertexArrayObject::Binder vaoBinder(&m_vao);
-
 
     m_program = new QOpenGLShaderProgram;
     m_program->addShaderFromSourceFile(QOpenGLShader::Vertex,":shaders/vertexshader.glsl");
@@ -463,10 +464,10 @@ void GLWidget::paintGL()
     m_vertice_indices_Vbo.bind();
     m_vertices_Vbo.bind();
     m_textureLuma_coordinates_Vbo.bind();
-    m_textureChroma_coordinates_Vbo.bind();
+    //m_textureChroma_coordinates_Vbo.bind();
 
     glDrawElements(
-        GL_TRIANGLES,      // mode
+        GL_TRIANGLE_STRIP,      // mode
         m_videoFrameTriangles_indices.size(),    // count
         GL_UNSIGNED_INT,   // type
         (void*)0           // element array buffer offset
@@ -479,28 +480,43 @@ void GLWidget::paintGL()
     emit msSinceLastPaintChanged(msSinceLastPaint);
 }
 
-
-
 // function to generate the vertices corresponding to the pixels of a frame. Each vertex is centered at a pixel, borders are padded.
 void GLWidget::computeFrameVertices(int frameWidth, int frameHeight)
 {
-    m_videoFrameTriangles_vertices.clear();
 
-    for( int h = 0; h < frameHeight; h++)
+    m_videoFrameTriangles_vertices.push_back(glm::vec3(-1,-1,0));
+
+    m_videoFrameTriangles_vertices.push_back(glm::vec3(1,1,0));
+
+    m_videoFrameTriangles_vertices.push_back(glm::vec3(-1,1,0));
+
+    m_videoFrameTriangles_vertices.push_back(glm::vec3(1,-1,0));
+
+
+    /*for( int h = 0; h < frameHeight; h++)
     {
         for(int w = 0; w < frameWidth; w++)
         {
 
             m_videoFrameTriangles_vertices.push_back(glm::vec3(w,h,0));
         }
-    }
+    }*/
 }
 
 // function to create a mesh by connecting the vertices to triangles
 void GLWidget::computeFrameMesh(int frameWidth, int frameHeight)
 {
     m_videoFrameTriangles_indices.clear();
-    for( int h = 0; h < frameHeight; h++)
+
+    m_videoFrameTriangles_indices.push_back(2);
+    m_videoFrameTriangles_indices.push_back(0);
+    m_videoFrameTriangles_indices.push_back(1);
+    // second triangle
+    m_videoFrameTriangles_indices.push_back(0);
+    m_videoFrameTriangles_indices.push_back(3);
+    m_videoFrameTriangles_indices.push_back(1);
+
+    /*for( int h = 0; h < frameHeight; h++)
     {
         for(int w = 0; w < frameWidth; w++)
         {
@@ -520,7 +536,7 @@ void GLWidget::computeFrameMesh(int frameWidth, int frameHeight)
             m_videoFrameTriangles_indices.push_back(index_pixel_br);
             m_videoFrameTriangles_indices.push_back(index_pixel_tr);
         }
-    }
+    }*/
 }
 
 // Function to fill Vector which will hold the texture coordinates which maps the texture (the video data) to the frame's vertices.

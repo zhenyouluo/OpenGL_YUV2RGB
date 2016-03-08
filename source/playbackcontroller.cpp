@@ -204,7 +204,8 @@ void PlaybackController::updateSequence(int pixelFormatIdx) {
 
     newSequenceFormat(m_frameWidth, m_frameHeight, YUVCPixelFormatType(pixelFormatIdx), m_numFrames, m_frameRate);
     //update current frame with new pixel format
-    emit newFrame( m_tmpTextureBufferYUV444);
+    setFrame(m_currentFrame);
+
 }
 
 void PlaybackController::playOrPause()
