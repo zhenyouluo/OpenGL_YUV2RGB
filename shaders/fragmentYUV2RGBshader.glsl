@@ -25,9 +25,16 @@ void main(){
     // Output color = color of the texture at the specified UV
     vec3 color709;
     //color709.rgb = texture2D( textureSamplerYUV, fragmentUV ).rgb;
-    color709.r = texture2D( textureSamplerRed, fragmentUVLuma ).r;
-    color709.g = texture2D( textureSamplerGreen, fragmentUVLuma ).r;
-    color709.b = texture2D( textureSamplerBlue, fragmentUVLuma ).r;
+    vec2 fragmentUVLuma2 = vec2(fragmentUVLuma.x, fragmentUVLuma.y*2.0/3);
+    vec2 fragmentUVChroma1 = vec2(fragmentUVLuma.x * 0.5 , fragmentUVLuma.y*1.0/6 + 2.0/3);
+    vec2 fragmentUVChroma2 = vec2(fragmentUVLuma.x * 0.5 , fragmentUVLuma.y*1.0/6 + 2.0/3+ 1.0/6);
+//    vec2 fragmentUVChroma1 = vec2(fragmentUVLuma.x *0.5, fragmentUVLuma.y*1.0/3  + 2.0/3);
+
+    color709.r = texture2D( textureSamplerRed, fragmentUVLuma2 ).r;
+    color709.g = texture2D( textureSamplerRed, fragmentUVChroma1 ).r;
+    color709.b = texture2D( textureSamplerRed, fragmentUVChroma2 ).r;
+//    color709.g = texture2D( textureSamplerGreen, fragmentUVLuma ).r;
+//    color709.b = texture2D( textureSamplerBlue, fragmentUVLuma ).r;
 
 
     // make sure input has correct range
