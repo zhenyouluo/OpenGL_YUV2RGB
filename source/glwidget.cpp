@@ -147,7 +147,11 @@ void GLWidget::updateFrame(const QByteArray &textureData)
     m_texture_Ydata->create();
     m_texture_Ydata->setSize(m_frameWidth,m_frameHeight);
     m_texture_Ydata->setFormat(QOpenGLTexture::R8_UNorm);
+#if QT_VERSION >= QT_VERSION_CHECK(5,5,0)
     m_texture_Ydata->allocateStorage(QOpenGLTexture::Red,QOpenGLTexture::UInt8);
+#else
+    m_texture_Ydata->allocateStorage();
+#endif
     m_texture_Ydata->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, srcY);
     // Set filtering modes for texture minification and  magnification
     m_texture_Ydata->setMinificationFilter(QOpenGLTexture::Nearest);
@@ -162,7 +166,11 @@ void GLWidget::updateFrame(const QByteArray &textureData)
     m_texture_Udata->create();
     m_texture_Udata->setSize(m_frameWidth/m_horizontalSubSampling,m_frameHeight/m_verticalSubSampling);
     m_texture_Udata->setFormat(QOpenGLTexture::R8_UNorm);
+#if QT_VERSION >= QT_VERSION_CHECK(5,5,0)
     m_texture_Udata->allocateStorage(QOpenGLTexture::Red,QOpenGLTexture::UInt8);
+#else
+    m_texture_Ydata->allocateStorage();
+#endif
     m_texture_Udata->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, srcU);
     // Set filtering modes for texture minification and  magnification
     m_texture_Udata->setMinificationFilter(QOpenGLTexture::Nearest);
@@ -177,7 +185,11 @@ void GLWidget::updateFrame(const QByteArray &textureData)
     m_texture_Vdata->create();
     m_texture_Vdata->setSize(m_frameWidth/m_horizontalSubSampling, m_frameHeight/m_verticalSubSampling);
     m_texture_Vdata->setFormat(QOpenGLTexture::R8_UNorm);
+#if QT_VERSION >= QT_VERSION_CHECK(5,5,0)
     m_texture_Vdata->allocateStorage(QOpenGLTexture::Red,QOpenGLTexture::UInt8);
+#else
+    m_texture_Ydata->allocateStorage();
+#endif
     m_texture_Vdata->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, srcV);
     //Set filtering modes for texture minification and  magnification
     m_texture_Vdata->setMinificationFilter(QOpenGLTexture::Nearest);
