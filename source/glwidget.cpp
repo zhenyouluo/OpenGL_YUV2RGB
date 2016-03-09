@@ -56,14 +56,14 @@
 GLWidget::GLWidget(QWidget *parent)
     : QOpenGLWidget(parent),      
       m_frameWidth(1),
-      m_frameHeight(1),
+      m_frameHeight(1),      
+      m_horizontalSubSampling(1),
+      m_verticalSubSampling(1),
+      m_bytesperComponent(1),
       m_vertice_indices_Vbo(QOpenGLBuffer::IndexBuffer),
       m_texture_Ydata(0),
       m_texture_Udata(0),
       m_texture_Vdata(0),
-      m_horizontalSubSampling(1),
-      m_verticalSubSampling(1),
-      m_bytesperComponent(1),
       m_program(0)
 {
     m_core = QCoreApplication::arguments().contains(QStringLiteral("--coreprofile"));
@@ -143,61 +143,83 @@ void GLWidget::updateFrame(const QByteArray &textureData)
 
     // transmitting the YUV data as three different textures
     // Y on unit 0
-    m_texture_Ydata = std::make_shared<QOpenGLTexture>(QOpenGLTexture::Target2D);
-    m_texture_Ydata->create();
-    m_texture_Ydata->setSize(m_frameWidth,m_frameHeight);
-    m_texture_Ydata->setFormat(QOpenGLTexture::R8_UNorm);
+    if(!m_texture_Ydata)
+    {
+        m_texture_Ydata = std::make_shared<QOpenGLTexture>(QOpenGLTexture::Target2D);
+        m_texture_Ydata->create();
+        m_texture_Ydata->setSize(m_frameWidth,m_frameHeight);
+        m_texture_Ydata->setFormat(QOpenGLTexture::R8_UNorm);
 #if QT_VERSION >= QT_VERSION_CHECK(5,5,0)
-    m_texture_Ydata->allocateStorage(QOpenGLTexture::Red,QOpenGLTexture::UInt8);
+        m_texture_Ydata->allocateStorage(QOpenGLTexture::Red,QOpenGLTexture::UInt8);
 #else
-    m_texture_Ydata->allocateStorage();
+        m_texture_Ydata->allocateStorage();
 #endif
-    m_texture_Ydata->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, srcY);
-    // Set filtering modes for texture minification and  magnification
-    m_texture_Ydata->setMinificationFilter(QOpenGLTexture::Nearest);
-    m_texture_Ydata->setMagnificationFilter(QOpenGLTexture::Linear);
-    // Wrap texture coordinates by repeating
-//    m_texture_Ydata->setWrapMode(QOpenGLTexture::Repeat);
-    m_texture_Ydata->setWrapMode(QOpenGLTexture::ClampToBorder);
-//    m_texture_Ydata->bind(0);
+        m_texture_Ydata->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, srcY);
+        // Set filtering modes for texture minification and  magnification
+        m_texture_Ydata->setMinificationFilter(QOpenGLTexture::Nearest);
+        m_texture_Ydata->setMagnificationFilter(QOpenGLTexture::Linear);
+        // Wrap texture coordinates by repeating
+    //    m_texture_Ydata->setWrapMode(QOpenGLTexture::Repeat);
+        m_texture_Ydata->setWrapMode(QOpenGLTexture::ClampToBorder);
+    //    m_texture_Ydata->bind(0);
+    }
+    else
+    {
+        m_texture_Ydata->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, srcY);
+    }
+
 
     // U on unit 1
-    m_texture_Udata = std::make_shared<QOpenGLTexture>(QOpenGLTexture::Target2D);
-    m_texture_Udata->create();
-    m_texture_Udata->setSize(m_frameWidth/m_horizontalSubSampling,m_frameHeight/m_verticalSubSampling);
-    m_texture_Udata->setFormat(QOpenGLTexture::R8_UNorm);
+    if(!m_texture_Udata)
+    {
+        m_texture_Udata = std::make_shared<QOpenGLTexture>(QOpenGLTexture::Target2D);
+        m_texture_Udata->create();
+        m_texture_Udata->setSize(m_frameWidth/m_horizontalSubSampling,m_frameHeight/m_verticalSubSampling);
+        m_texture_Udata->setFormat(QOpenGLTexture::R8_UNorm);
 #if QT_VERSION >= QT_VERSION_CHECK(5,5,0)
-    m_texture_Udata->allocateStorage(QOpenGLTexture::Red,QOpenGLTexture::UInt8);
+        m_texture_Udata->allocateStorage(QOpenGLTexture::Red,QOpenGLTexture::UInt8);
 #else
-    m_texture_Ydata->allocateStorage();
+        m_texture_Udata->allocateStorage();
 #endif
-    m_texture_Udata->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, srcU);
-    // Set filtering modes for texture minification and  magnification
-    m_texture_Udata->setMinificationFilter(QOpenGLTexture::Nearest);
-    m_texture_Udata->setMagnificationFilter(QOpenGLTexture::Linear);
-    // Wrap texture coordinates by repeating
-//    m_texture_Udata->setWrapMode(QOpenGLTexture::Repeat);
-    m_texture_Udata->setWrapMode(QOpenGLTexture::ClampToBorder);
-//    m_texture_Udata->bind(1);
+        m_texture_Udata->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, srcU);
+        // Set filtering modes for texture minification and  magnification
+        m_texture_Udata->setMinificationFilter(QOpenGLTexture::Nearest);
+        m_texture_Udata->setMagnificationFilter(QOpenGLTexture::Linear);
+        // Wrap texture coordinates by repeating
+    //    m_texture_Udata->setWrapMode(QOpenGLTexture::Repeat);
+        m_texture_Udata->setWrapMode(QOpenGLTexture::ClampToBorder);
+    //    m_texture_Udata->bind(1);
+    }
+    else
+    {
+        m_texture_Udata->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, srcU);
+    }
 
     // V on unit 2
-    m_texture_Vdata = std::make_shared<QOpenGLTexture>(QOpenGLTexture::Target2D);
-    m_texture_Vdata->create();
-    m_texture_Vdata->setSize(m_frameWidth/m_horizontalSubSampling, m_frameHeight/m_verticalSubSampling);
-    m_texture_Vdata->setFormat(QOpenGLTexture::R8_UNorm);
+    if(!m_texture_Vdata)
+    {
+        m_texture_Vdata = std::make_shared<QOpenGLTexture>(QOpenGLTexture::Target2D);
+        m_texture_Vdata->create();
+        m_texture_Vdata->setSize(m_frameWidth/m_horizontalSubSampling, m_frameHeight/m_verticalSubSampling);
+        m_texture_Vdata->setFormat(QOpenGLTexture::R8_UNorm);
 #if QT_VERSION >= QT_VERSION_CHECK(5,5,0)
-    m_texture_Vdata->allocateStorage(QOpenGLTexture::Red,QOpenGLTexture::UInt8);
+        m_texture_Vdata->allocateStorage(QOpenGLTexture::Red,QOpenGLTexture::UInt8);
 #else
-    m_texture_Ydata->allocateStorage();
+        m_texture_Vdata->allocateStorage();
 #endif
-    m_texture_Vdata->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, srcV);
-    //Set filtering modes for texture minification and  magnification
-    m_texture_Vdata->setMinificationFilter(QOpenGLTexture::Nearest);
-    m_texture_Vdata->setMagnificationFilter(QOpenGLTexture::Linear);
-    // Wrap texture coordinates by repeating
-//    m_texture_Vdata->setWrapMode(QOpenGLTexture::Repeat);
-    m_texture_Vdata->setWrapMode(QOpenGLTexture::ClampToBorder);
-//    m_texture_Vdata->bind(2);
+        m_texture_Vdata->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, srcV);
+        //Set filtering modes for texture minification and  magnification
+        m_texture_Vdata->setMinificationFilter(QOpenGLTexture::Nearest);
+        m_texture_Vdata->setMagnificationFilter(QOpenGLTexture::Linear);
+        // Wrap texture coordinates by repeating
+    //    m_texture_Vdata->setWrapMode(QOpenGLTexture::Repeat);
+        m_texture_Vdata->setWrapMode(QOpenGLTexture::ClampToBorder);
+    //    m_texture_Vdata->bind(2);
+    }
+    else
+    {
+        m_texture_Vdata->setData(QOpenGLTexture::Red, QOpenGLTexture::UInt8, srcV);
+    }
 
     qDebug() << "Moving data to graphics card took" << timer.elapsed() << "milliseconds";
 
