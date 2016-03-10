@@ -46,6 +46,11 @@ void PlaybackController::nextFrame()
         m_currentFrame++;
         setFrame();
     }
+    if(m_currentFrame == m_numFrames)
+    {
+      m_currentFrame=1;
+      setFrame();
+    }
 
 }
 
