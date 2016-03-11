@@ -12,6 +12,12 @@ int main(int argc, char *argv[])
     fmt.setDepthBufferSize(24);
     fmt.setSamples(4);
     fmt.setVersion(3, 3);
+    // trying different swap behaviours
+//    fmt.setSwapBehavior(QSurfaceFormat::SingleBuffer); // only gives me a completely blacked out application
+    fmt.setSwapBehavior(QSurfaceFormat::DoubleBuffer); // the default
+//    fmt.setSwapBehavior(QSurfaceFormat::TripleBuffer); // same as double buffer for me. how to tell it's actually working?
+    // swap interval of 0 turns of vsync which might lead to tearing, default is 1
+    fmt.setSwapInterval(0); // no effect in windows
     fmt.setProfile(QSurfaceFormat::CoreProfile);
 
     QSurfaceFormat::setDefaultFormat(fmt);
